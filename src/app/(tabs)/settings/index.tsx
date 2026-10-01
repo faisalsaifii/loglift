@@ -4,6 +4,7 @@ import { Alert, Linking, Platform, Pressable, StyleSheet, View } from 'react-nat
 import { Icon } from '@/components/icon';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
+import { UnitSelector } from '@/components/unit-selector';
 import { Card, Chip } from '@/components/ui';
 import { Radii, Spacing } from '@/constants/theme';
 import {
@@ -16,7 +17,7 @@ import {
 import { CURATED_CUE_COUNT } from '@/data/form-cues';
 import { useTheme } from '@/hooks/use-theme';
 import { useLibrary } from '@/store/library';
-import { pluralize, WEIGHT_UNITS } from '@/utils/weight';
+import { pluralize, UNIT_NAMES } from '@/utils/weight';
 
 export default function SettingsScreen() {
   const colors = useTheme();
@@ -44,30 +45,13 @@ export default function SettingsScreen() {
         <Txt variant="body" tone="secondary">
           Sets are stored in kilograms, so switching here only changes how they are displayed.
         </Txt>
-        <View style={[styles.unitRow, { backgroundColor: colors.surfaceSunken }]}>
-          {WEIGHT_UNITS.map((option) => {
-            const active = option === unit;
-            return (
-              <Pressable
-                key={option}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                onPress={() => setUnit(option)}
-                style={[
-                  styles.unitOption,
-                  {
-                    backgroundColor: active ? colors.surface : 'transparent',
-                    borderColor: active ? colors.borderStrong : 'transparent',
-                  },
-                ]}>
-                <Txt variant="heading">{option}</Txt>
-                <Txt variant="caption" tone="secondary">
-                  {option === 'kg' ? 'kilograms' : 'pounds'}
-                </Txt>
-              </Pressable>
-            );
-          })}
-        </View>
+        <UnitSelector
+          value={unit}
+          onChange={setUnit}
+          labels={UNIT_NAMES}
+          style={styles.unitSelector}
+          testID="settings-weight-unit"
+        />
       </Card>
 
       <Card>
@@ -125,18 +109,8 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  unitRow: {
-    flexDirection: 'row',
-    gap: Spacing.three,
+  unitSelector: {
     marginTop: Spacing.three,
-  },
-  unitOption: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-    paddingVertical: Spacing.three,
-    borderRadius: Radii.sm,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   dangerRow: {
     flexDirection: 'row',

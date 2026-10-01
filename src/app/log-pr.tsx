@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
+import { UnitSelector } from '@/components/unit-selector';
 import { Button, Card } from '@/components/ui';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { getExercise, getGifUrl } from '@/data/exercises';
@@ -26,7 +27,6 @@ import {
   fromKg,
   parseWeight,
   roundWeight,
-  WEIGHT_UNITS,
   type WeightUnit,
 } from '@/utils/weight';
 
@@ -228,28 +228,12 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
               ]}
               accessibilityLabel="Weight"
             />
-            <View style={styles.unitToggle}>
-              {WEIGHT_UNITS.map((option) => {
-                const active = option === unit;
-                return (
-                  <Pressable
-                    key={option}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => setUnit(option)}
-                    style={[
-                      styles.unitOption,
-                      active && { backgroundColor: colors.surface, borderColor: colors.border },
-                    ]}>
-                    <Txt
-                      variant="label"
-                      style={{ color: active ? colors.text : colors.textSecondary }}>
-                      {option}
-                    </Txt>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <UnitSelector
+              value={unit}
+              onChange={setUnit}
+              style={styles.unitSelector}
+              testID="log-pr-weight-unit"
+            />
           </View>
           {weightInput && !weightValid ? (
             <Txt variant="caption" tone="danger" style={styles.errorText}>
@@ -401,18 +385,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     letterSpacing: -1,
   },
-  unitToggle: {
-    flexDirection: 'row',
-    gap: 2,
-    padding: 3,
-    borderRadius: Radii.md,
-  },
-  unitOption: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Radii.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'transparent',
+  unitSelector: {
+    alignSelf: 'center',
   },
   repsInput: {
     fontSize: 34,

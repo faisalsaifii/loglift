@@ -7,6 +7,11 @@ export const UNIT_LABELS: Record<WeightUnit, string> = {
   lb: 'lb',
 };
 
+export const UNIT_NAMES: Record<WeightUnit, string> = {
+  kg: 'Kilograms',
+  lb: 'Pounds',
+};
+
 const KG_PER_LB = 0.45359237;
 
 export function kgToLb(kg: number): number {
