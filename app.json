@@ -2,15 +2,19 @@
   "expo": {
     "name": "loglift",
     "slug": "loglift",
+    "description": "Strength-training exercise reference and personal-record logger. Browse exercises, track your library, and log sets with PR detection.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "loglift",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.loglift.app",
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true
     },
     "android": {
+      "package": "com.loglift.app",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -30,7 +34,8 @@
         {
           "backgroundColor": "#000000",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 76,
+          "resizeMode": "contain"
         }
       ],
       "@react-native-vector-icons/material-design-icons"
@@ -38,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "assetBundlePatterns": ["**/*"],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f3e3d88e-5ba4-4099-a60a-7db78aa0b5cc"
+      }
     }
   }
 }
