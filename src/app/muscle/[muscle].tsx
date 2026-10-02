@@ -1,4 +1,3 @@
-import AddIcon from '@expo/material-symbols/add.xml';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -6,7 +5,6 @@ import type { SearchBarCommands } from 'react-native-screens';
 
 import { SearchField, Segmented } from '@/components/controls';
 import { ExerciseRow } from '@/components/exercise-row';
-import { ICONS } from '@/components/icon';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
 import { EmptyState } from '@/components/ui';
@@ -53,7 +51,9 @@ export default function MuscleScreen() {
       return [];
     }
     const matches = searchExercises(group.id, query, { limit: BROWSE_LIMIT });
-    return scope === 'mine' ? matches.filter((exercise) => addedIds.has(exercise.id)) : matches;
+    return scope === 'mine'
+      ? matches.filter((exercise) => addedIds.has(exercise.id))
+      : matches;
   }, [group, query, scope, addedIds]);
 
   // Resolving and formatting every row's best set on each keystroke would be
@@ -66,11 +66,14 @@ export default function MuscleScreen() {
           exercise,
           isAdded: addedIds.has(exercise.id),
           best: record
-            ? { text: formatWeight(fromKg(record.weightKg, unit), unit), reps: record.reps }
+            ? {
+                text: formatWeight(fromKg(record.weightKg, unit), unit),
+                reps: record.reps,
+              }
             : undefined,
         };
       }),
-    [results, addedIds, bestPr, unit]
+    [results, addedIds, bestPr, unit],
   );
 
   /*
@@ -84,20 +87,12 @@ export default function MuscleScreen() {
    * Declared before the `!group` return so the hook order never changes.
    */
   const toolbar = useMemo(
-    () =>
-      USES_NATIVE_CHROME ? (
-        <Stack.Toolbar placement="bottom">
-          <Stack.Toolbar.SearchBarSlot />
-          <Stack.Toolbar.Spacer />
-          <Stack.Toolbar.Button
-            icon={process.env.EXPO_OS === 'ios' ? ICONS.plus.sf : AddIcon}
-            variant="prominent"
-            accessibilityLabel="Add exercise"
-            onPress={() => setScope('library')}
-          />
-        </Stack.Toolbar>
-      ) : null,
-    []
+    () => (
+      <Stack.Toolbar placement="bottom">
+        <Stack.Toolbar.SearchBarSlot />
+      </Stack.Toolbar>
+    ),
+    [],
   );
 
   if (!group) {
@@ -145,11 +140,16 @@ export default function MuscleScreen() {
         header={
           <View style={styles.controls}>
             {USES_NATIVE_CHROME ? null : (
-              <SearchField value={query} onChangeText={setQuery} placeholder={placeholder} />
+              <SearchField
+                value={query}
+                onChangeText={setQuery}
+                placeholder={placeholder}
+              />
             )}
             <Segmented options={SCOPES} value={scope} onChange={setScope} />
           </View>
-        }>
+        }
+      >
         <Txt variant="body" tone="secondary">
           {group.blurb}
         </Txt>
@@ -166,9 +166,11 @@ export default function MuscleScreen() {
                   : `No ${group.label.toLowerCase()} exercises match that search.`
             }
             action={
-                  // Show action in content on web and Android only; iOS has toolbar
-                  (Platform.OS === 'web' || Platform.OS === 'android') && scope === 'mine' && !query
-                ? { label: 'Browse all exercises', onPress: () => setScope('library') }
+              scope === 'mine' && !query
+                ? {
+                    label: 'Browse all exercises',
+                    onPress: () => setScope('library'),
+                  }
                 : undefined
             }
           />
@@ -189,7 +191,10 @@ export default function MuscleScreen() {
                   isAdded={isAdded}
                   best={best}
                   onPress={() =>
-                    router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } })
+                    router.push({
+                      pathname: '/exercise/[id]',
+                      params: { id: exercise.id },
+                    })
                   }
                 />
               ))}

@@ -124,6 +124,9 @@ export default function CollectionScreen() {
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
+          // `Screen` is non-scrolling here, so this list owns its own inset for
+          // the native bar. See the note in `Screen`.
+          contentInsetAdjustmentBehavior="automatic"
           data={rows}
           keyExtractor={(row) => row.exercise.id}
           renderItem={({ item }) => (
