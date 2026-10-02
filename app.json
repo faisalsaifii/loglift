@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "loglift",
+    "name": "Log Lift",
     "slug": "loglift",
     "description": "Strength-training exercise reference and personal-record logger. Browse exercises, track your library, and log sets with PR detection.",
     "version": "1.0.0",
