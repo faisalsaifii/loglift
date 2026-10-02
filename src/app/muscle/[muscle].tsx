@@ -150,10 +150,6 @@ export default function MuscleScreen() {
           </View>
         }
       >
-        <Txt variant="body" tone="secondary">
-          {group.blurb}
-        </Txt>
-
         {isReady && rows.length === 0 ? (
           <EmptyState
             icon={scope === 'mine' ? 'library' : 'search'}

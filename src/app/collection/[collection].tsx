@@ -58,12 +58,15 @@ export default function CollectionScreen() {
               isAdded: addedIds.has(exercise.id),
               groupLabel: getMuscleGroup(exercise.group)?.label,
               best: record
-                ? { text: formatWeight(fromKg(record.weightKg, unit), unit), reps: record.reps }
+                ? {
+                    text: formatWeight(fromKg(record.weightKg, unit), unit),
+                    reps: record.reps,
+                  }
                 : undefined,
             };
           })
         : [],
-    [current, query, addedIds, bestPr, unit]
+    [current, query, addedIds, bestPr, unit],
   );
 
   const trimmed = query.trim();
@@ -120,7 +123,8 @@ export default function CollectionScreen() {
               placeholder={`Search ${current.label.toLowerCase()} exercises`}
             />
           )
-        }>
+        }
+      >
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
@@ -136,17 +140,22 @@ export default function CollectionScreen() {
               best={item.best}
               groupLabel={item.groupLabel}
               onPress={() =>
-                router.push({ pathname: '/exercise/[id]', params: { id: item.exercise.id } })
+                router.push({
+                  pathname: '/exercise/[id]',
+                  params: { id: item.exercise.id },
+                })
               }
             />
           )}
           ItemSeparatorComponent={Separator}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Txt variant="body" tone="secondary">
-                {current.blurb}
-              </Txt>
-              <Txt variant="caption" tone="secondary" eyebrow style={styles.counts}>
+              <Txt
+                variant="caption"
+                tone="secondary"
+                eyebrow
+                style={styles.counts}
+              >
                 {trimmed
                   ? `${pluralize(rows.length, 'match', 'matches')} for “${trimmed}”`
                   : `${pluralize(rows.length, 'exercise')} · ${stats.totalExercises} in your library`}
@@ -162,7 +171,9 @@ export default function CollectionScreen() {
           }
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardDismissMode={
+            Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+          }
         />
       </Screen>
     </>

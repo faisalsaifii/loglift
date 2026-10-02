@@ -6,7 +6,11 @@ import catalog from '@/data/exercises.json';
 
 export type MuscleGroupId = keyof typeof MusclePalette;
 
-export type ExerciseCategory = 'strength' | 'stretching' | 'plyometrics' | 'cardio';
+export type ExerciseCategory =
+  | 'strength'
+  | 'stretching'
+  | 'plyometrics'
+  | 'cardio';
 
 export type Equipment =
   | 'barbell'
@@ -64,12 +68,21 @@ const byGroup = new Map<MuscleGroupId, Exercise[]>();
 const searchIndex = new Map<string, string>();
 
 function searchable(exercise: Exercise) {
-  return [exercise.name, exercise.equipment, exercise.target, exercise.group, ...exercise.secondary]
+  return [
+    exercise.name,
+    exercise.equipment,
+    exercise.target,
+    exercise.group,
+    ...exercise.secondary,
+  ]
     .join(' ')
     .toLowerCase();
 }
 
-for (const [group] of Object.entries(MusclePalette) as [MuscleGroupId, unknown][]) {
+for (const [group] of Object.entries(MusclePalette) as [
+  MuscleGroupId,
+  unknown,
+][]) {
   byGroup.set(group, []);
 }
 
@@ -132,7 +145,7 @@ function rankMatches(pool: readonly Exercise[], needle: string): Exercise[] {
 export function searchExercises(
   group: MuscleGroupId,
   query: string,
-  options?: { limit?: number }
+  options?: { limit?: number },
 ): Exercise[] {
   const limit = options?.limit ?? 60;
   const pool = getExercisesForGroup(group);
@@ -152,7 +165,7 @@ export function searchExercises(
  */
 export function searchAllExercises(
   query: string,
-  options?: { limit?: number }
+  options?: { limit?: number },
 ): Exercise[] {
   const limit = options?.limit ?? 80;
   const needle = query.trim().toLowerCase();
@@ -174,8 +187,6 @@ export const MUSCLE_GROUP_IDS = Object.keys(MusclePalette) as MuscleGroupId[];
 export type MuscleGroup = {
   id: MuscleGroupId;
   label: string;
-  /** Short descriptor shown under the muscle title. */
-  blurb: string;
   sf: SFSymbol;
   md: AndroidSymbol;
   light: string;
@@ -186,7 +197,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'chest',
     label: 'Chest',
-    blurb: 'Pressing power',
     sf: 'heart.fill',
     md: 'favorite',
     light: MusclePalette.chest.light,
@@ -195,7 +205,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'back',
     label: 'Back',
-    blurb: 'Pulling strength',
     sf: 'figure.rower',
     md: 'airline_seat_flat',
     light: MusclePalette.back.light,
@@ -204,7 +213,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'shoulders',
     label: 'Shoulders',
-    blurb: 'Overhead & lateral',
     sf: 'figure.strengthtraining.traditional',
     md: 'accessibility_new',
     light: MusclePalette.shoulders.light,
@@ -213,7 +221,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'biceps',
     label: 'Biceps',
-    blurb: 'Elbow flexion',
     sf: 'bolt.fill',
     md: 'flash_on',
     light: MusclePalette.biceps.light,
@@ -222,7 +229,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'triceps',
     label: 'Triceps',
-    blurb: 'Elbow extension',
     sf: 'figure.strengthtraining.functional',
     md: 'sports_gymnastics',
     light: MusclePalette.triceps.light,
@@ -231,7 +237,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'legs',
     label: 'Legs',
-    blurb: 'Squat, hinge & lunge',
     sf: 'figure.run',
     md: 'hiking',
     light: MusclePalette.legs.light,
@@ -240,7 +245,6 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   {
     id: 'core',
     label: 'Core',
-    blurb: 'Trunk stability',
     sf: 'figure.core.training',
     md: 'self_improvement',
     light: MusclePalette.core.light,
@@ -248,9 +252,13 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   },
 ];
 
-const muscleGroupById = new Map(MUSCLE_GROUPS.map((group) => [group.id, group]));
+const muscleGroupById = new Map(
+  MUSCLE_GROUPS.map((group) => [group.id, group]),
+);
 
-export function getMuscleGroup(id: string | undefined): MuscleGroup | undefined {
+export function getMuscleGroup(
+  id: string | undefined,
+): MuscleGroup | undefined {
   return id ? muscleGroupById.get(id as MuscleGroupId) : undefined;
 }
 
@@ -259,8 +267,6 @@ export type CollectionId = 'full-body' | 'push' | 'pull';
 export type ExerciseCollection = {
   id: CollectionId;
   label: string;
-  /** Short descriptor shown under the collection title. */
-  blurb: string;
   /** `IconName` for the home-page row. */
   icon: IconName;
   /**
@@ -276,29 +282,30 @@ export const COLLECTIONS: ExerciseCollection[] = [
   {
     id: 'full-body',
     label: 'Full body',
-    blurb: 'Every movement, whichever muscle it trains',
     icon: 'fullBody',
     groups: null,
   },
   {
     id: 'push',
     label: 'Push',
-    blurb: 'Pressing & overhead',
     icon: 'push',
     groups: ['chest', 'shoulders', 'triceps'],
   },
   {
     id: 'pull',
     label: 'Pull',
-    blurb: 'Rowing & pulling',
     icon: 'pull',
     groups: ['back', 'biceps'],
   },
 ];
 
-const collectionById = new Map(COLLECTIONS.map((collection) => [collection.id, collection]));
+const collectionById = new Map(
+  COLLECTIONS.map((collection) => [collection.id, collection]),
+);
 
-export function getCollection(id: string | undefined): ExerciseCollection | undefined {
+export function getCollection(
+  id: string | undefined,
+): ExerciseCollection | undefined {
   return id ? collectionById.get(id as CollectionId) : undefined;
 }
 
@@ -313,7 +320,9 @@ for (const collection of COLLECTIONS) {
   const { groups } = collection;
   collectionPool.set(
     collection.id,
-    groups === null ? exercises : exercises.filter((exercise) => groups.includes(exercise.group))
+    groups === null
+      ? exercises
+      : exercises.filter((exercise) => groups.includes(exercise.group)),
   );
 }
 
@@ -332,7 +341,7 @@ export function getExercisesForCollection(id: CollectionId): Exercise[] {
 export function browseCollection(
   id: CollectionId,
   query: string,
-  options?: { limit?: number }
+  options?: { limit?: number },
 ): Exercise[] {
   const pool = getExercisesForCollection(id);
   const limit = options?.limit ?? pool.length;
@@ -438,7 +447,9 @@ const STOP_WORDS = new Set([
  * their equipment, so these words are noise in a similarity query.
  */
 const EQUIPMENT_WORDS = new Set(
-  Object.values(EQUIPMENT_LABELS).flatMap((label) => label.toLowerCase().split(' '))
+  Object.values(EQUIPMENT_LABELS).flatMap((label) =>
+    label.toLowerCase().split(' '),
+  ),
 );
 
 /**
@@ -468,7 +479,10 @@ const BARE_WORD_MAX_MATCHES = 40;
  * the same target muscle with the same equipment, which is what makes them
  * variations of one another.
  */
-export function getSimilarExercises(exercise: Exercise, options?: { limit?: number }): Exercise[] {
+export function getSimilarExercises(
+  exercise: Exercise,
+  options?: { limit?: number },
+): Exercise[] {
   const limit = options?.limit ?? 6;
   const words = exercise.name
     .toLowerCase()
@@ -478,7 +492,7 @@ export function getSimilarExercises(exercise: Exercise, options?: { limit?: numb
         word &&
         !/^\d+$/.test(word) &&
         !STOP_WORDS.has(word) &&
-        !EQUIPMENT_WORDS.has(word)
+        !EQUIPMENT_WORDS.has(word),
     );
 
   const pool = getExercisesForGroup(exercise.group);
@@ -497,7 +511,8 @@ export function getSimilarExercises(exercise: Exercise, options?: { limit?: numb
     const matches = rankMatches(pool, words.slice(0, end).join(' '));
     if (
       end === 1 &&
-      (matches.length < BARE_WORD_MIN_MATCHES || matches.length > BARE_WORD_MAX_MATCHES)
+      (matches.length < BARE_WORD_MIN_MATCHES ||
+        matches.length > BARE_WORD_MAX_MATCHES)
     ) {
       break;
     }
@@ -510,7 +525,10 @@ export function getSimilarExercises(exercise: Exercise, options?: { limit?: numb
   }
 
   for (const match of pool) {
-    if (match.target === exercise.target && match.equipment === exercise.equipment) {
+    if (
+      match.target === exercise.target &&
+      match.equipment === exercise.equipment
+    ) {
       take(match);
     }
   }
