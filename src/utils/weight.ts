@@ -58,6 +58,30 @@ export function formatWeight(weight: number, unit: WeightUnit): string {
   return `${text} ${unit}`;
 }
 
+/**
+ * Volume is a sum over every logged set, so it runs into four figures where
+ * `roundWeight`'s 0.1/0.5 steps would print noise. Whole units past 1,000.
+ */
+export function formatVolume(volumeKg: number, unit: WeightUnit): string {
+  const converted = fromKg(volumeKg, unit);
+  const rounded = Math.abs(converted) >= 1000 ? Math.round(converted) : Math.round(converted * 10) / 10;
+  return `${rounded.toLocaleString()} ${unit}`;
+}
+
+/**
+ * Epley's one-rep-max estimate for a single set: `weight × (1 + reps / 30)`.
+ *
+ * The app records no RPE, so this is the only strength signal it can derive
+ * beyond raw weight, and it is most accurate in the 3–10 rep range — which is
+ * why every surface that shows it labels it an estimate.
+ */
+export function estimateOneRepMax(weightKg: number, reps: number): number {
+  if (!(weightKg > 0) || !(reps > 0)) {
+    return 0;
+  }
+  return weightKg * (1 + reps / 30);
+}
+
 /** Parses user input that may or may not carry a unit suffix (`"80"`, `"80kg"`). */
 export function parseWeight(input: string, fallbackUnit: WeightUnit): number | null {
   const cleaned = input.trim().toLowerCase().replace(/,/g, '.');

@@ -17,6 +17,8 @@ Browse a catalogue of 1,292 movements, mark the ones you actually train, and log
 - **Progress** — total sets logged, heaviest lift, a per-body-part breakdown, and a reverse-chronological history of every set you've recorded.
 - **Search** — ranked search across names, equipment, target muscle, and secondary muscles.
 - **Form cues** — 135 hand-written cue sets for common movements, falling back to the catalogue's own instructions elsewhere.
+- **Related movements** — every exercise suggests variations of itself. The query is its name stripped of equipment, conjunctions and rep counts ("Barbell Bench Press" → "bench press"), widened one trailing word at a time until it is specific enough, then falling back to same target muscle and equipment for names with nothing distinctive left.
+- **Training stats** — heaviest set, an Epley estimated 1RM, total volume lifted, and a newest-first set history per exercise.
 - **kg / lb** — a single unit preference. Weights are always _stored_ in kilograms, so switching the display unit later never rewrites your history.
 
 ## Screens
@@ -26,7 +28,7 @@ Browse a catalogue of 1,292 movements, mark the ones you actually train, and log
 | `/muscles`                 | Home. Collections (full-body, push, pull) and body-part summaries with tracked counts. |
 | `/muscle/[muscle]`         | Browse one body part. Toggle between your library and the full catalogue.              |
 | `/collection/[collection]` | Full-body, push, or pull browsing.                                                     |
-| `/exercise/[id]`           | Exercise detail: GIF, muscles worked, form cues, and your records.                     |
+| `/exercise/[id]`           | Exercise detail: GIF, muscles worked, form cues, your records, and related movements. |
 | `/search`                  | Global catalogue search.                                                               |
 | `/log-pr`                  | Modal form for logging a set.                                                          |
 | `/progress`                | Stats, per-body-part breakdown, and set history.                                       |
@@ -89,7 +91,7 @@ All state lives in a single AsyncStorage key (`loglift.state.v1`) and holds only
 
 Two consequences worth knowing:
 
-- **Removing an exercise deletes its history.** The library is your list of what you track, not an archive.
+- **Removing an exercise deletes its history.** The library is your list of what you track, not an archive — so the app confirms before it does.
 - **Stored weights are always kilograms.** The display unit is a pure conversion at render time.
 
 Stored state is sanitised on load — corrupt JSON returns an empty library instead of throwing, so bad data can't stop the app from booting. **Settings → Clear all data** resets everything, including your unit preference.

@@ -1,3 +1,4 @@
+import AddIcon from '@expo/material-symbols/add.xml';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -5,6 +6,7 @@ import type { SearchBarCommands } from 'react-native-screens';
 
 import { SearchField, Segmented } from '@/components/controls';
 import { ExerciseRow } from '@/components/exercise-row';
+import { ICONS } from '@/components/icon';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
 import { EmptyState } from '@/components/ui';
@@ -71,6 +73,33 @@ export default function MuscleScreen() {
     [results, addedIds, bestPr, unit]
   );
 
+  /*
+   * Built once. The Android toolbar is a Compose `Host` with `matchContents`
+   * that reports its own size back to Yoga, and re-applying the screen options
+   * on a re-render detaches and re-attaches its subviews — the host then
+   * measures 0x0 and never recovers, taking the whole bar with it. Typing in
+   * the search field re-renders this screen on every keystroke, so the toolbar
+   * needs an identity that survives. See https://github.com/expo/expo/issues/49312.
+   *
+   * Declared before the `!group` return so the hook order never changes.
+   */
+  const toolbar = useMemo(
+    () =>
+      USES_NATIVE_CHROME ? (
+        <Stack.Toolbar placement="bottom">
+          <Stack.Toolbar.SearchBarSlot />
+          <Stack.Toolbar.Spacer />
+          <Stack.Toolbar.Button
+            icon={process.env.EXPO_OS === 'ios' ? ICONS.plus.sf : AddIcon}
+            variant="prominent"
+            accessibilityLabel="Add exercise"
+            onPress={() => setScope('library')}
+          />
+        </Stack.Toolbar>
+      ) : null,
+    []
+  );
+
   if (!group) {
     return null;
   }
@@ -103,19 +132,14 @@ export default function MuscleScreen() {
         and down here beside the button; without it the bar falls back to the
         header. The flexible spacer pushes the button to the trailing edge. Both
         are pinned, so neither scrolls away with the list.
+
+        The icon is platform-split because Android's toolbar takes image sources
+        only: a bare SF Symbol name makes `Stack.Toolbar.Button` warn and render
+        nothing at all, which is how the add button went missing on Android.
+        `process.env.EXPO_OS` is inlined at build time, so only the matching
+        platform's icon reaches the bundle.
       */}
-      {USES_NATIVE_CHROME ? (
-        <Stack.Toolbar placement="bottom">
-          <Stack.Toolbar.SearchBarSlot />
-          <Stack.Toolbar.Spacer />
-          <Stack.Toolbar.Button
-            icon="plus"
-            variant="prominent"
-            accessibilityLabel="Add exercise"
-            onPress={() => setScope('library')}
-          />
-        </Stack.Toolbar>
-      ) : null}
+      {toolbar}
 
       <Screen
         header={
@@ -142,9 +166,8 @@ export default function MuscleScreen() {
                   : `No ${group.label.toLowerCase()} exercises match that search.`
             }
             action={
-              // Native shows the add button in the bottom toolbar; web has no
-              // toolbar, so it keeps the in-content action.
-              !USES_NATIVE_CHROME && scope === 'mine' && !query
+                  // Show action in content on web and Android only; iOS has toolbar
+                  (Platform.OS === 'web' || Platform.OS === 'android') && scope === 'mine' && !query
                 ? { label: 'Browse all exercises', onPress: () => setScope('library') }
                 : undefined
             }

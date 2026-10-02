@@ -2,7 +2,7 @@ import MaterialDesignIcons, {
   type MaterialDesignIconsIconName,
 } from '@react-native-vector-icons/material-design-icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { Platform } from 'react-native';
+import { Platform, type ImageStyle, type StyleProp } from 'react-native';
 
 /**
  * Every icon in the app is declared once here with its iOS SF Symbol and its
@@ -57,9 +57,10 @@ type IconProps = {
   color: string;
   /** `fill` renders the SF Symbol variant with a solid fill where one exists. */
   weight?: 'regular' | 'semibold' | 'bold';
+  style?: StyleProp<ImageStyle>;
 };
 
-export function Icon({ name, size = 20, color, weight = 'regular' }: IconProps) {
+export function Icon({ name, size = 20, color, weight = 'regular', style }: IconProps) {
   const glyph = ICONS[name];
 
   if (Platform.OS === 'ios') {
@@ -70,10 +71,10 @@ export function Icon({ name, size = 20, color, weight = 'regular' }: IconProps) 
         size={size}
         weight={weight}
         resizeMode="scaleAspectFit"
-        style={{ width: size, height: size }}
+        style={[{ width: size, height: size }, style]}
       />
     );
   }
 
-  return <MaterialDesignIcons name={glyph.md} size={size} color={color} />;
+  return <MaterialDesignIcons name={glyph.md} size={size} color={color} style={style} />;
 }

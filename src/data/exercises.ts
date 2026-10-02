@@ -408,5 +408,115 @@ function toTitleCase(value: string): string {
     .join(' ');
 }
 
+/**
+ * Conjunctions and prepositions carry no movement information once the
+ * equipment is known, but they do match: "Barbell Bench Press - Narrow Grip"
+ * and "Barbell Bench Press" both contain "press with", so leaving them in makes
+ * every similarity query drift towards unrelated names.
+ */
+const STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'at',
+  'by',
+  'from',
+  'in',
+  'of',
+  'on',
+  'per',
+  'the',
+  'to',
+  'vs',
+  'versus',
+  'with',
+]);
+
+/**
+ * Every word that appears in an equipment label, flattened — "Smith machine"
+ * contributes both `smith` and `machine`. Names in this catalogue lead with
+ * their equipment, so these words are noise in a similarity query.
+ */
+const EQUIPMENT_WORDS = new Set(
+  Object.values(EQUIPMENT_LABELS).flatMap((label) => label.toLowerCase().split(' '))
+);
+
+/**
+ * A one-word query like "deadlift" or "curl" is only trusted while it is
+ * selective in both directions: 40 matches is most of a body part, and three or
+ * fewer says nothing — the target/equipment fallback is the better signal for
+ * names like "Air Bike". 40 is roughly the per-body-part browse cap the
+ * browsing screens already use.
+ */
+const BARE_WORD_MIN_MATCHES = 3;
+const BARE_WORD_MAX_MATCHES = 40;
+
+/**
+ * Movements that share `exercise`'s body part and a name phrase with it, ranked
+ * best-first and excluding itself.
+ *
+ * The query is the exercise name stripped of equipment words, conjunctions and
+ * bare numbers — "Barbell Bench Press - Narrow Grip" reduces to "bench press
+ * narrow grip", and "3 4 Sit Up" to "sit up", since the leading digits are a rep
+ * scheme rather than a movement. Trailing words are then dropped one at a time
+ * until the phrase returns a useful handful, so a precise name such as
+ * "Barbell Bench Press" still surfaces the other bench presses instead of
+ * nothing at all.
+ *
+ * When no phrase is distinctive enough — "Barbell Deadlift" has a single usable
+ * word, and "Air Bike" has nothing left — it falls back to movements filed under
+ * the same target muscle with the same equipment, which is what makes them
+ * variations of one another.
+ */
+export function getSimilarExercises(exercise: Exercise, options?: { limit?: number }): Exercise[] {
+  const limit = options?.limit ?? 6;
+  const words = exercise.name
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(
+      (word) =>
+        word &&
+        !/^\d+$/.test(word) &&
+        !STOP_WORDS.has(word) &&
+        !EQUIPMENT_WORDS.has(word)
+    );
+
+  const pool = getExercisesForGroup(exercise.group);
+  const seen = new Set([exercise.id]);
+  const similar: Exercise[] = [];
+
+  const take = (match: Exercise) => {
+    if (seen.has(match.id) || similar.length >= limit) {
+      return;
+    }
+    seen.add(match.id);
+    similar.push(match);
+  };
+
+  for (let end = words.length; end >= 1; end -= 1) {
+    const matches = rankMatches(pool, words.slice(0, end).join(' '));
+    if (
+      end === 1 &&
+      (matches.length < BARE_WORD_MIN_MATCHES || matches.length > BARE_WORD_MAX_MATCHES)
+    ) {
+      break;
+    }
+    for (const match of matches) {
+      take(match);
+    }
+    if (similar.length >= 3) {
+      return similar;
+    }
+  }
+
+  for (const match of pool) {
+    if (match.target === exercise.target && match.equipment === exercise.equipment) {
+      take(match);
+    }
+  }
+
+  return similar;
+}
+
 // Re-exported so data consumers can type a `MuscleGroupId` from the palette alone.
 export { MusclePalette };

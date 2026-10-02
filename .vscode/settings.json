@@ -3,5 +3,7 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "js/ts.preferences.quoteStyle": "single",
+  "prettier.singleQuote": true
 }

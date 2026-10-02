@@ -50,6 +50,8 @@ type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   accentColor?: string;
   disabled?: boolean;
+  /** Spells out what the tap does, for buttons whose label only names a state. */
+  accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -60,6 +62,7 @@ export function Button({
   variant = 'primary',
   accentColor,
   disabled,
+  accessibilityHint,
   style,
 }: ButtonProps) {
   const colors = useTheme();
@@ -84,6 +87,8 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}

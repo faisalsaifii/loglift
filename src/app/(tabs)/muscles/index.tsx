@@ -1,7 +1,8 @@
+import SearchIcon from '@expo/material-symbols/search.xml';
 import { Stack, useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Icon, type IconName } from '@/components/icon';
+import { ICONS, Icon, type IconName } from '@/components/icon';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
 import { Card } from '@/components/ui';
@@ -16,6 +17,14 @@ import { pluralize } from '@/utils/weight';
  * native-only and web falls back to an in-content row.
  */
 const USES_NATIVE_CHROME = Platform.OS !== 'web';
+
+/**
+ * `Stack.Toolbar.Button` takes image sources only — on Android a bare SF
+ * Symbol name warns and renders nothing, which is how the header search button
+ * disappeared. `process.env.EXPO_OS` is inlined at build time, so only the
+ * matching platform's icon reaches the bundle.
+ */
+const SEARCH_TOOLBAR_ICON = process.env.EXPO_OS === 'ios' ? ICONS.search.sf : SearchIcon;
 
 export default function MusclesScreen() {
   const router = useRouter();
@@ -35,7 +44,11 @@ export default function MusclesScreen() {
       {/* A right-hand navbar button that pushes the standalone search screen. */}
       {USES_NATIVE_CHROME ? (
         <Stack.Toolbar placement="right">
-          <Stack.Toolbar.Button icon="magnifyingglass" onPress={openSearch} />
+          <Stack.Toolbar.Button
+            icon={SEARCH_TOOLBAR_ICON}
+            accessibilityLabel="Search all exercises"
+            onPress={openSearch}
+          />
         </Stack.Toolbar>
       ) : null}
 
