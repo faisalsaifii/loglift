@@ -33,7 +33,7 @@ function ThemedStack() {
           options={{ title: '', headerBackTitle: 'Muscles' }}
         />
         <Stack.Screen name="exercise/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="search" options={{ title: '', headerBackTitle: 'Muscles' }} />
+
         <Stack.Screen name="log-pr" options={{ presentation: 'modal', title: 'Log a set' }} />
       </Stack>
     </>
