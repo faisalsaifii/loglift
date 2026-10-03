@@ -12,6 +12,7 @@ export default defineConfig({
     inlineStylesheets: 'auto',
   },
   vite: {
+    tsconfig: './tsconfig.json',
     plugins: [tailwindcss()],
   },
 });
