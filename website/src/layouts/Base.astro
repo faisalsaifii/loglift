@@ -1,16 +1,45 @@
 ---
 import '../styles/global.css';
-import { site } from '../data/content';
+import { seo, site } from '../data/content';
 
 interface Props {
   title?: string;
   description?: string;
+  /**
+   * Nodes for the JSON-LD `@graph`. Passed in rather than built here so the
+   * layout stays page-agnostic: each page describes itself, and the wrapper —
+   * `@context`, the graph envelope, the `<` escaping — stays in one place.
+   */
+  jsonLd?: readonly Record<string, unknown>[];
 }
 
-const {
-  title = `${site.name} — ${site.tagline}`,
-  description = 'A strength-training reference and personal-record logger. Browse 1,292 movements with animated form demos and hand-written cues, then log a set in seconds. No account, no backend, no tracking. Free Android APK.',
-} = Astro.props;
+const { title = seo.title, description = seo.description, jsonLd } = Astro.props;
+
+/**
+ * Resolved against `Astro.site`, not `Astro.url`.
+ *
+ * `Astro.url` tracks the request, so on a `astro dev` machine the canonical and
+ * the Open Graph URL would both come out as `http://localhost:4321`. Pinning them
+ * to the configured origin means the two things crawlers treat as absolute
+ * statements about this page are correct in every build, and a preview deploy
+ * cannot accidentally advertise itself as the canonical URL.
+ */
+const origin = Astro.site ?? Astro.url;
+const canonical = new URL(Astro.url.pathname, origin);
+const ogImage = new URL(`/${seo.ogImage.file}`, origin);
+
+/**
+ * JSON-LD has to be raw text, so Astro is told not to escape it — and the `<` in
+ * the payload is escaped here instead. A `</script>` anywhere in the data would
+ * otherwise close the tag early and turn the rest of the document into script
+ * source. Nothing in the copy contains one today; this means adding one cannot.
+ */
+const jsonLdPayload = jsonLd
+  ? JSON.stringify({ '@context': 'https://schema.org', '@graph': jsonLd }).replace(
+      /</g,
+      '\\u003c',
+    )
+  : null;
 ---
 
 <!doctype html>
@@ -24,21 +53,31 @@ const {
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={Astro.url.href} />
+    <meta name="author" content={site.author} />
+    <link rel="canonical" href={canonical.href} />
+    {/* Emitted by `@astrojs/sitemap`; the same path is advertised in robots.txt. */}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="robots" content={seo.robots} />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content={seo.locale} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={new URL('/app-icon.png', Astro.url).href} />
-    <meta property="og:image:width" content="1000" />
-    <meta property="og:image:height" content="1000" />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={canonical.href} />
+    <meta property="og:image" content={ogImage.href} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content={String(seo.ogImage.width)} />
+    <meta property="og:image:height" content={String(seo.ogImage.height)} />
+    <meta property="og:image:alt" content={seo.ogImage.alt} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL('/app-icon.png', Astro.url).href} />
+    <meta name="twitter:image" content={ogImage.href} />
+    <meta name="twitter:image:alt" content={seo.ogImage.alt} />
+
+    {jsonLdPayload && <script type="application/ld+json" is:inline set:html={jsonLdPayload} />}
 
     <script is:inline>
       // Runs before first paint. Its only job is to mark that scripting is

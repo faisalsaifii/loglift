@@ -11,8 +11,16 @@ import {
   hero,
   loop,
   site,
+  structuredData,
 } from '../data/content';
 import Base from '../layouts/Base.astro';
+
+/**
+ * Describes the page to search engines: the site, the app and its author, in one
+ * `@graph`. Built against the configured origin for the same reason the canonical
+ * is — so the absolute URLs inside it are never the dev server's.
+ */
+const jsonLd = structuredData(Astro.site ?? Astro.url);
 
 /**
  * The headline animates word by word, so it is flattened into one list of words
@@ -39,7 +47,7 @@ const card =
   'tilt group relative flex h-full flex-col overflow-hidden rounded-panel border border-line bg-surface p-6 transition-[transform,translate,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong sm:p-7';
 ---
 
-<Base>
+<Base jsonLd={jsonLd}>
   <div id="top"></div>
   <SiteNav />
 
@@ -77,13 +85,26 @@ const card =
             v{site.version} — direct APK, no store
           </a>
 
-          <!-- One `aria-label` for the sentence, one animation per word. -->
-          <h1 class="display mt-6" aria-label={hero.title.join(' ')}>
+          <!--
+            One animation per word, and the heading's text left plainly readable.
+
+            The words used to sit in `aria-hidden` spans behind an `aria-label`,
+            to stop a screen reader announcing the headline one word at a time.
+            That hid the page's most important string from anything reading the
+            markup as text, crawlers included, which is a poor trade for a
+            cosmetic gain. The spaces are already real text nodes between the
+            spans, so the heading reads as one sentence without the label.
+
+            The spaces stay *outside* each span, as `global.css` notes: `.word` is
+            an inline-block, and a trailing space inside one is trimmed as
+            trailing whitespace, which would set the words solid against each
+            other.
+          -->
+          <h1 class="display mt-6">
             {
               headline.map(({ word, muted }, i) => (
                 <>
                   <span
-                    aria-hidden="true"
                     class:list={['word', muted && 'text-muted']}
                     style={`--word-delay:${80 + i * 45}ms`}
                   >

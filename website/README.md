@@ -10,6 +10,7 @@ pnpm install     # in this directory, not the repo root
 pnpm dev         # http://localhost:4321
 pnpm build       # static output in dist/
 pnpm check       # astro + typescript diagnostics
+pnpm og          # regenerate public/og.png — run after copy edits
 ```
 
 It is deliberately **not** part of the root pnpm workspace, so `pnpm install` at the
@@ -50,13 +51,95 @@ Before the first deploy, set the real origin in `astro.config.mjs`:
 site: 'https://your-domain.example',
 ```
 
-That value drives `<link rel="canonical">` and the Open Graph URLs.
+That one value drives `<link rel="canonical">`, every Open Graph URL, the
+`sitemap-*.xml` files, the `Sitemap:` line in `robots.txt`, and the absolute URLs
+inside the JSON-LD. Change it in one place.
+
+## SEO
+
+### What is generated
+
+| File                | Source                                                    |
+| ------------------- | --------------------------------------------------------- |
+| `robots.txt`        | `src/pages/robots.txt.ts` — prerendered                   |
+| `sitemap-index.xml` | `@astrojs/sitemap` in `astro.config.mjs`                  |
+| `sitemap-0.xml`     | same                                                       |
+| `og.png`            | `pnpm og` → `scripts/generate-og.mjs`                     |
+
+`robots.txt` is an Astro endpoint rather than a file in `public/` so that it reads
+`site` from the config. A hand-written file would hard-code the origin, and a
+robots.txt pointing at a sitemap that is not served from that domain is the usual
+reason a sitemap goes unnoticed.
+
+The sitemap integration switches off all four optional XML namespaces — the site is
+single-language and has no news, video, or image-sitemap entries, so shipping them
+would only add empty attributes for crawlers to skip.
+
+### The link-preview card
+
+`public/og.png` is a 1200×630 card, committed to the repo. The app icon is
+1000×1000 and a square image in a `summary_large_image` slot gets centre-cropped or
+letterboxed depending on the platform, so the icon alone is not a usable card
+whatever it is tagged as.
+
+**Run `pnpm og` after editing any copy in `content.ts` that appears on the card.**
+The script reads the same module the page renders from, so the movement count in
+the card cannot drift from the movement count on the page — but that only holds if
+you re-run it.
+
+The card is set in the site's own `--font-sans`, read out of `global.css` at run
+time rather than restated in the script, so it cannot drift from the page either.
+The page loads no webfont, so that stack resolves per platform — the card is set in
+whatever face the machine that ran `pnpm og` provides. The face is deliberately not
+embedded: Segoe UI and SF Pro are licensed for local use only. Because the card is
+committed, only one machine's resolution ever ships; regenerate deliberately and
+the diff will show it.
+
+The script measures the rasterised card and fails on the two failures a zero exit
+code would hide — a stack fontconfig cannot resolve, which renders every string as
+nothing, and a face whose metrics push a line past the right margin, where the
+1200px frame silently crops it.
+
+`sharp` and `esbuild` are devDependencies for this script alone; neither ships to
+the browser or runs during `astro build`.
+
+### Structured data
+
+`structuredData()` in `src/data/content.ts` returns a `@graph` that `Base.astro`
+wraps in a JSON-LD `<script>`. Three nodes: `WebSite`, `MobileApplication`,
+`Person`. The feature list and screenshot URLs are read from `features` and
+`screens`, so the markup cannot claim something the app does not do.
+
+There is deliberately no `aggregateRating` or `review`. Both are valid on
+`SoftwareApplication`, and inventing either would be fabricated review markup —
+the app has no store listing to rate and no reviews to carry.
+
+### Editing SEO copy
+
+`seo` in `src/data/content.ts` holds the default title, meta description, robots
+directives, `og:locale`, and the card's dimensions and alt text. The description
+derives the movement count from `total`, so it cannot drift the way the old
+hard-coded copy did.
+
+The `<link rel="canonical">` and `og:url` resolve against `Astro.site` rather than
+`Astro.url`, so they stay correct on a dev machine and on preview deploys instead
+of advertising `http://localhost:4321` as the canonical URL.
+
+## Known gaps
+
+- **One page.** Every internal link is an anchor (`#how`, `#features`), so there is
+  nothing for a crawler to discover beyond the root. A `/privacy` page and a real
+  `/download` route would give the site an actual link graph.
+- **Thin long-tail coverage.** No FAQ, so nothing targets the questions the page
+  only answers implicitly — does it work offline, what happens to my data, is it
+  really free. An FAQ section plus `FAQPage` markup is the cheapest next win.
 
 ## Editing the copy
 
 Every string lives in `src/data/content.ts`. Nothing else needs touching for a copy
-change: the hero, the feature cards, the numbered steps, the body-part counts and the
-closing CTA are all data.
+change: the hero, the feature cards, the numbered steps, the body-part counts and
+the closing CTA are all data. The one exception is the link-preview card, which
+reads the same file but is baked into a PNG — re-run `pnpm og`.
 
 The figures in there are pulled from the app's real data and should stay in sync with
 it:
@@ -79,8 +162,8 @@ the pixels are fixed, the phones need no theme-specific treatment.
 Screens are registered once in the `screens` map in `src/data/content.ts`, keyed by a
 `ScreenName`, and `Phone.astro` types its `screen` prop against that map. A renamed or
 missing file is therefore a build error rather than a broken image on the page. Alt text
-lives in the same entry, and the walkthrough copy for each screen is the `showcase`
-object just below it.
+lives in the same entry, and the walkthrough copy for each screen is the `loop` object
+just below it.
 
 ```astro
 <Phone screen="progress" size="sm" />
@@ -94,7 +177,7 @@ object just below it.
 | `eager` | Skips lazy-loading for the likely LCP element (the hero phone)       |
 
 To add a screen: drop the capture into `public/screens/`, add an entry to `screens`, and
-if it should appear in the walkthrough, append it to `showcase.items`.
+if it should appear in the walkthrough, append it to `loop.items`.
 
 The form demonstrations the app shows come from
 [ExerciseGymGifsDB](https://github.com/JahelCuadrado/ExerciseGymGifsDB) pinned to

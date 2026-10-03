@@ -21,6 +21,9 @@ export const site = {
     'https://github.com/faisalsaifii/loglift/releases/download/v1.0.0/loglift.apk',
   repoUrl: 'https://github.com/faisalsaifii/loglift',
   datasetUrl: 'https://github.com/JahelCuadrado/ExerciseGymGifsDB',
+  /** Shown in the footer and used as the structured-data author. */
+  author: 'faisalsaifii',
+  license: 'MIT',
 } as const;
 
 /** Counts computed from `src/data/exercises.json`. */
@@ -170,3 +173,110 @@ export const closing = {
    */
   install: 'Android asks you to allow installs from your browser the first time.',
 } as const;
+
+/* ══ Search and social ═════════════════════════════════════════════════════════ */
+
+export const seo = {
+  /**
+   * The default `<title>` and `og:title`. Short on purpose — it is both the
+   * browser-tab label and the first line of a link preview, so the brand leads
+   * and the tagline carries the keywords.
+   */
+  title: `${site.name} — ${site.tagline}`,
+
+  /**
+   * The meta description. Lives here rather than in `Base.astro` so the movement
+   * count is derived from `total` instead of being typed out again: the old copy
+   * hard-coded `1,292` in two places, which is exactly the drift the rest of this
+   * file is arranged to prevent.
+   */
+  description: `A strength-training reference and personal-record logger. Browse ${total.toLocaleString('en-US')} movements with animated form demos and hand-written cues, then log a set in seconds. No account, no backend, no tracking. Free Android APK.`,
+
+  /**
+   * `index, follow` is the default and is stated explicitly so the opt-out lives
+   * next to the opt-in and cannot be half-removed. The `max-*` directives are not
+   * cosmetic: without `max-image-preview:large`, Google and X both fall back to a
+   * thumbnail-sized crop of any image on the page, and `-1` on the snippet and
+   * video directives lets them show the full text they are entitled to.
+   */
+  robots:
+    'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+
+  /** Matches the `lang` on `<html>`; `og:locale` wants the underscore form. */
+  locale: 'en_US',
+
+  /** The link-preview card. See `scripts/generate-og.mjs`. */
+  ogImage: {
+    file: 'og.png',
+    width: 1200,
+    height: 630,
+    /**
+     * Describes what is actually painted on the card, not what the card is "for".
+     * Platforms surface this to screen readers and as the fallback when the image
+     * itself fails to load, so it has to stand on its own.
+     */
+    alt: `The Log Lift app icon and name on a black background, with the tagline “${site.tagline}” and the notes “${hero.note}”.`,
+  },
+} as const;
+
+/**
+ * The JSON-LD graph for the landing page.
+ *
+ * Returned as an array so `Base.astro` can wrap it in a single `@graph` and link
+ * the nodes by `@id`. Three nodes earn their place:
+ *
+ * - `WebSite` names the site and its search target.
+ * - `MobileApplication` is the one that matters. It is what lets the page qualify
+ *   for app-style results instead of being read as a plain marketing page, and it
+ *   is built entirely from data already in this file, so it cannot claim a
+ *   feature count the app does not have.
+ * - `Person` is the author, shared with the footer.
+ *
+ * Deliberately absent: `aggregateRating` and `review`. Both are supported by the
+ * type, and inventing either would be a fabricated review markup violation — the
+ * app has no Play listing to rate and no reviews to carry.
+ */
+export function structuredData(origin: URL) {
+  const abs = (path: string) => new URL(path, origin).href;
+  const id = origin.href;
+
+  return [
+    {
+      '@type': 'WebSite',
+      '@id': `${id}#website`,
+      url: id,
+      name: site.name,
+      description: seo.description,
+      inLanguage: 'en',
+      publisher: { '@id': `${id}#author` },
+    },
+    {
+      '@type': 'MobileApplication',
+      '@id': `${id}#app`,
+      name: site.name,
+      description: seo.description,
+      url: id,
+      applicationCategory: 'Health & Fitness',
+      operatingSystem: 'Android',
+      softwareVersion: site.version,
+      downloadUrl: site.downloadUrl,
+      installUrl: site.downloadUrl,
+      license: `https://opensource.org/licenses/${site.license}`,
+      author: { '@id': `${id}#author` },
+      featureList: features.map((feature) => feature.title),
+      screenshot: Object.values(screens).map((screen) => abs(`/screens/${screen.file}`)),
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      isAccessibleForFree: true,
+    },
+    {
+      '@type': 'Person',
+      '@id': `${id}#author`,
+      name: site.author,
+      url: site.repoUrl,
+    },
+  ] as const;
+}
