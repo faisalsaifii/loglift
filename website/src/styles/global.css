@@ -1,0 +1,366 @@
+@import 'tailwindcss';
+
+/* Monochrome surfaces, lifted straight from the app's own theme so the site and
+   the product are literally the same palette. Every value here exists in
+   `src/constants/theme.ts` on the Expo side. */
+@theme inline {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, 'JetBrains Mono', Menlo, Consolas,
+    monospace;
+
+  /* Semantic tokens.
+
+     `inline` is load-bearing. Without it Tailwind emits `--color-bg: var(--bg)`
+     onto `:root`, and a custom property substitutes at the element that declares
+     it — so every utility would freeze the *root* value and a `.band-sunken`
+     section further down would still paint the page colour instead of the inset
+     one. With `inline`, `bg-surface` compiles to `background-color:
+     var(--surface)` and resolves against the nearest band. */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --radius-panel: 1.5rem;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-rise: rise 0.7s var(--ease-out-expo) both;
+  --animate-drift: drift 9s ease-in-out infinite;
+}
+
+/* ── Palette ──────────────────────────────────────────────────────────────────
+   The site is dark-only: there is no theme toggle, no `.dark` class and no
+   `prefers-color-scheme` branch, so these are simply the page's colours. */
+:root {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --sunken: #0a0a0b;
+  --fg: #ffffff;
+  --muted: #98989f;
+  --faint: #6b6b72;
+  --line: #38383a;
+  --line-strong: #48484a;
+  --accent: #ffffff;
+  --on-accent: #000000;
+  --accent-soft: rgb(255 255 255 / 0.1);
+}
+
+/* Inset band — one step off the page colour, the way iOS
+   `systemGroupedBackground` sits under white cells. Only the backdrop moves, so
+   the rhythm between sections and the raised cards survive. */
+.band-sunken {
+  background-color: var(--sunken);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  /* Display type. Fluid and tightly tracked, but never tighter than the glyph
+     box itself — below ~1.0 the descenders of one line collide with the
+     ascenders of the next.
+
+     The hero is centred and single-column, so the 4.75rem ceiling is just the
+     largest size at which "Know the movement. Log the set. Beat the record." still
+     breaks into three balanced lines rather than two long ones. The 2.15rem floor
+     is the smallest that clears a 320px-wide phone viewport. */
+  .display {
+    font-size: clamp(2.15rem, 7vw, 4.75rem);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+    font-weight: 600;
+  }
+
+  .display-sm {
+    font-size: clamp(1.875rem, 4.4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    font-weight: 600;
+  }
+
+  .lede {
+    font-size: clamp(1.0625rem, 1.9vw, 1.3125rem);
+    line-height: 1.55;
+    letter-spacing: -0.014em;
+    color: var(--muted);
+  }
+
+  /* Small all-caps label used above every section heading. Uses `muted` rather
+     than `faint`: `faint` is the app's tertiary grey, which is decorative-only
+     and does not clear WCAG AA for small text on a marketing page. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Numerals that shouldn't jitter as counters change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Graph-paper texture, from the app's own iOS icon grid asset. */
+  .grid-tex {
+    background-image: url('/grid.png');
+    background-size: 34px 34px;
+  }
+}
+
+@layer utilities {
+  /* Scroll reveal is driven purely by the `data-reveal` attribute so markup
+     never has to remember a companion class. The hidden start state is gated on
+     `.js` (set by the inline head script) so that if scripting fails, nothing is
+     left permanently invisible. */
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.8s var(--ease-out-expo),
+      transform 0.8s var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .js [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Fine film grain over the backdrop, not over the copy. `::before` with a
+     stacking level of 0 keeps it under the section's `relative z-10` content
+     wrapper, so type stays perfectly crisp while large flat fields get texture. */
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.32'/%3E%3C/svg%3E");
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.32em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.1deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1.1deg);
+  }
+}
+
+/* ══ Motion ══════════════════════════════════════════════════════════════════
+   Everything below is decorative. One rule governs the whole system: never put
+   the resting state in the base rule. The hidden/start state lives in the
+   keyframe's `from`, applied with `backwards` fill. If animations are disabled,
+   unsupported, or interrupted, the element still renders in its correct final
+   state instead of being stranded off-screen.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Skewed bar of light travelling across a button on hover. */
+@keyframes sheen {
+  from {
+    transform: translateX(-160%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+
+@layer components {
+  /* ── Word-by-word headline reveal ──────────────────────────────────────
+     One inline-block per word, each with its own `--word-delay`, so the headline
+     reads as three beats landing in sequence. `inline-block` is what makes the
+     per-word `translateY` possible; the spaces between words are real text nodes
+     outside the spans, so wrapping stays entirely up to the browser. */
+  .word {
+    display: inline-block;
+    animation: word-in 0.7s var(--ease-out-expo) backwards;
+    animation-delay: var(--word-delay, 0ms);
+  }
+
+  /* ── 3D tilt card ───────────────────────────────────────────────────────
+     `--rx`/`--ry` come from the pointer, `--mx`/`--my` place the glare. On
+     leave the rotation returns over 600ms, which reads as a card settling back
+     into place rather than snapping.
+
+     The lift on hover is a Tailwind `-translate-y-*`, which v4 emits as the
+     standalone `translate` property — so it composes with the `transform` here
+     instead of replacing it. A card must therefore list `transform` in its
+     `transition-[...]` alongside `translate`: Tailwind utilities sit in the
+     utilities layer and override this `transition` shorthand per-property, so
+     omitting it leaves the rotation snapping instead of easing. */
+  .tilt {
+    position: relative;
+    transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+
+  .tilt.is-tilting {
+    transition: transform 0.14s linear;
+    will-change: transform;
+  }
+
+  .tilt::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: inherit;
+    transition: opacity 0.5s var(--ease-out-expo);
+    background: radial-gradient(
+      220px circle at var(--mx, 50%) var(--my, 50%),
+      rgb(0 0 0 / 0.06),
+      transparent 70%
+    );
+  }
+
+  .tilt:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Sheen button ─────────────────────────────────────────────────────────
+     The shine is an overflow-clipped pseudo-element, so it never shifts layout
+     and costs no extra DOM. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .sheen::after {
+    content: '';
+    position: absolute;
+    top: -60%;
+    bottom: -60%;
+    left: 0;
+    width: 42%;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(0 0 0 / 0.22),
+      transparent
+    );
+    transform: translateX(-160%) skewX(-18deg);
+  }
+
+  .sheen:hover::after,
+  .sheen:focus-visible::after {
+    animation: sheen 0.95s var(--ease-out-expo);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .js [data-reveal] {
+    transition: none;
+  }
+
+  .tilt {
+    transform: none;
+  }
+
+  .tilt::after {
+    display: none;
+  }
+}

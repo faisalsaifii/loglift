@@ -1,0 +1,60 @@
+---
+import '../styles/global.css';
+import { site } from '../data/content';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = `${site.name} — ${site.tagline}`,
+  description = 'A strength-training reference and personal-record logger. Browse 1,292 movements with animated form demos and hand-written cues, then log a set in seconds. No account, no backend, no tracking. Free Android APK.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/app-icon.png" />
+    <meta name="theme-color" content="#000000" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={Astro.url.href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL('/app-icon.png', Astro.url).href} />
+    <meta property="og:image:width" content="1000" />
+    <meta property="og:image:height" content="1000" />
+    <meta property="og:url" content={Astro.url.href} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL('/app-icon.png', Astro.url).href} />
+
+    <script is:inline>
+      // Runs before first paint. Its only job is to mark that scripting is
+      // available, so scroll-reveal content is not left permanently invisible if
+      // it is not. There is no theme to set — the site is dark-only.
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+  <body class="min-h-screen bg-bg text-fg antialiased">
+    <slot />
+
+    <script>
+      // Astro bundles this. Every effect is progressive: markup renders in its
+      // final state on its own, and `motion.ts` only ever adds classes or writes
+      // custom properties on top.
+      import '../scripts/motion';
+    </script>
+  </body>
+</html>

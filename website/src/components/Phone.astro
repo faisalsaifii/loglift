@@ -1,0 +1,64 @@
+---
+import { screens, SCREEN_WIDTH, SCREEN_HEIGHT, type ScreenName } from '../data/content';
+
+/**
+ * A device frame around a real screenshot of the app.
+ *
+ * The captures in `public/screens/` are full-device shots, so they already carry
+ * their own status bar and gesture pill. The frame therefore contributes only a
+ * bezel and a contact shadow — and because the pixels are fixed, a phone needs no
+ * theme-specific treatment, the way a CSS rebuild of a screen did.
+ *
+ * The frame's `9 / 19.5` box is within 0.3% of the captures' own ratio, so
+ * `object-cover` trims a sliver rather than letterboxing.
+ */
+interface Props {
+  /** Which screenshot from `public/screens/` to frame. */
+  screen: ScreenName;
+  /** Staggers the drift animation when more than one device is on the page. */
+  delay?: number;
+  /** `lg` for a hero shot, `sm` for a walkthrough row. */
+  size?: 'sm' | 'lg';
+  /** Skip lazy-loading for a screen that is likely to be the LCP element. */
+  eager?: boolean;
+}
+
+const { screen, delay = 0, size = 'lg', eager = false } = Astro.props;
+
+const shot = screens[screen];
+---
+
+<div
+  class:list={[
+    'relative shrink-0',
+    // Fluid width with a cap: the walkthrough grid cell is narrower than 15rem
+    // at `lg`, so a fixed width would overflow it and clip against the page.
+    size === 'lg' ? 'mx-auto w-full max-w-[19rem]' : 'mx-auto w-full max-w-[15rem]',
+  ]}
+  style={`--d:${delay}ms`}
+>
+  <!-- Contact shadow, so the device sits on the page instead of floating. -->
+  <div
+    aria-hidden="true"
+    class="absolute -inset-x-6 -bottom-4 top-8 rounded-[3rem] opacity-70 blur-2xl"
+    style="background: radial-gradient(58% 50% at 50% 72%, rgba(0,0,0,.28), transparent 72%)"
+  >
+  </div>
+
+  <div
+    class="animate-drift relative rounded-[2.7rem] bg-gradient-to-b from-[#3d3d41] via-[#1b1b1d] to-[#0d0d0f] p-[3px] shadow-[0_2px_70px_-14px_rgba(0,0,0,.6),inset_0_1px_0_0_rgba(255,255,255,.16)] [animation-delay:var(--d)]"
+  >
+    <div class="relative aspect-[9/19.5] w-full overflow-hidden rounded-[2.5rem] bg-black">
+      <img
+        src={`/screens/${shot.file}`}
+        alt={shot.alt}
+        width={SCREEN_WIDTH}
+        height={SCREEN_HEIGHT}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchpriority={eager ? 'high' : 'auto'}
+        class="h-full w-full object-cover"
+      />
+    </div>
+  </div>
+</div>

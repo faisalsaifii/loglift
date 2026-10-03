@@ -1,0 +1,57 @@
+---
+/**
+ * The primary download call to action.
+ *
+ * This used to be a "Get it on Google Play" badge, complete with the Play
+ * triangle. Two reasons it no longer is: the app is distributed as a GitHub
+ * release APK rather than through Play, and the Play triangle is Google's
+ * trademark — pointing it at a sideloaded binary would be both inaccurate and a
+ * brand misuse. The glyph is a neutral download arrow instead.
+ */
+import { site } from '../data/content';
+
+interface Props {
+  href?: string;
+  class?: string;
+}
+
+const { href = site.downloadUrl, class: className = '' } = Astro.props;
+---
+
+<a
+  href={href}
+  target="_blank"
+  rel="noopener"
+  class:list={[
+    // `sheen` gives the button its highlight sweep. `isolation: isolate` keeps
+    // that pseudo-element inside the button's own stacking context, so it can
+    // never slide over the surrounding card.
+    //
+    // Fills follow the page tokens rather than the section it sits in: the badge
+    // lives on `bg-surface` in both places, so an inverted (white) treatment would
+    // be a white button on a white card.
+    'sheen inline-flex items-center gap-3.5 rounded-xl bg-fg px-5 py-3 text-on-accent transition-opacity duration-300 hover:opacity-85 active:scale-[0.98]',
+    className,
+  ]}
+>
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    class="relative z-10 h-7 w-7 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M12 3.5v10"></path>
+    <path d="m7.75 10.25 4.25 4.25 4.25-4.25"></path>
+    <path d="M4.75 16v2.25a2 2 0 0 0 2 2h10.5a2 2 0 0 0 2-2V16"></path>
+  </svg>
+  <span class="relative z-10 flex flex-col leading-none">
+    <span class="text-[0.5625rem] font-semibold tracking-[0.16em] uppercase opacity-70"
+      >Download for</span
+    >
+    <span class="mt-1 text-[1.0625rem] font-semibold tracking-[-0.01em]">Android</span>
+  </span>
+</a>

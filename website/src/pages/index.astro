@@ -1,0 +1,244 @@
+---
+import DownloadBadge from '../components/DownloadBadge.astro';
+import Icon from '../components/Icon.astro';
+import Phone from '../components/Phone.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteNav from '../components/SiteNav.astro';
+import {
+  closing,
+  features,
+  featuresIntro,
+  hero,
+  loop,
+  site,
+} from '../data/content';
+import Base from '../layouts/Base.astro';
+
+/**
+ * The headline animates word by word, so it is flattened into one list of words
+ * up front. The last sentence is set in `muted` — that is what makes it read as
+ * three beats rather than one long clause.
+ */
+const headline = hero.title.flatMap((sentence, i) =>
+  sentence
+    .split(' ')
+    .map((word) => ({ word, muted: i === hero.title.length - 1 })),
+);
+
+/**
+ * Shared hover treatment for every card on the page. The tilt transform lives on
+ * this inner element rather than on the `<li>`, because `data-reveal` animates
+ * `transform` on the list item and the two would otherwise overwrite each other.
+ *
+ * `transform` has to be in the transition list alongside `translate` and
+ * `border-color`: Tailwind utilities land in the utilities layer, which overrides
+ * `.tilt`'s own `transition` shorthand, and a shorthand only wins per-property.
+ * Drop `transform` and the tilt snaps instead of easing.
+ */
+const card =
+  'tilt group relative flex h-full flex-col overflow-hidden rounded-panel border border-line bg-surface p-6 transition-[transform,translate,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong sm:p-7';
+---
+
+<Base>
+  <div id="top"></div>
+  <SiteNav />
+
+  <main>
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="grain relative overflow-hidden">
+      <!-- Graph paper, straight from the app's iOS icon asset. -->
+      <div
+        class="grid-tex pointer-events-none absolute inset-0 opacity-[0.05]"
+        aria-hidden="true"
+      >
+      </div>
+      <div
+        class="pointer-events-none absolute -top-1/3 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full blur-[120px]"
+        style="background: radial-gradient(circle, rgba(255,255,255,.13), transparent 65%)"
+        aria-hidden="true"
+      >
+      </div>
+
+      <div
+        class="relative z-10 mx-auto max-w-6xl px-5 pt-32 pb-16 sm:px-8 sm:pt-40"
+      >
+        <div class="mx-auto max-w-3xl text-center">
+          <a
+            href={site.downloadUrl}
+            target="_blank"
+            rel="noopener"
+            class="animate-rise inline-flex items-center gap-2 rounded-full border border-line bg-accent-soft py-1.5 pr-4 pl-1.5 text-xs font-medium"
+          >
+            <span
+              class="rounded-full bg-fg px-2 py-1 text-[0.625rem] font-semibold tracking-[0.08em] text-on-accent uppercase"
+            >
+              New
+            </span>
+            v{site.version} — direct APK, no store
+          </a>
+
+          <!-- One `aria-label` for the sentence, one animation per word. -->
+          <h1 class="display mt-6" aria-label={hero.title.join(' ')}>
+            {
+              headline.map(({ word, muted }, i) => (
+                <>
+                  <span
+                    aria-hidden="true"
+                    class:list={['word', muted && 'text-muted']}
+                    style={`--word-delay:${80 + i * 45}ms`}
+                  >
+                    {word}
+                  </span>{' '}
+                </>
+              ))
+            }
+          </h1>
+
+          <p
+            class="lede mx-auto mt-6 max-w-2xl animate-rise [animation-delay:380ms]"
+          >
+            {hero.lede}
+          </p>
+
+          <div
+            class="mt-9 flex animate-rise flex-col items-center gap-5 [animation-delay:440ms] sm:flex-row sm:justify-center"
+          >
+            <DownloadBadge />
+            <a
+              href="#how"
+              class="inline-flex items-center gap-1.5 py-3 text-sm font-medium text-muted transition-colors hover:text-fg"
+            >
+              {hero.secondary}
+              <svg
+                viewBox="0 0 16 16"
+                class="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 3v10M4 9.5l4 4 4-4"></path>
+              </svg>
+            </a>
+          </div>
+
+          <p
+            class="mt-6 text-xs text-muted animate-rise [animation-delay:500ms]"
+          >
+            {hero.note}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How it works ──────────────────────────────────────────────────────
+         The walkthrough and the step list are one section: a single row of four
+         cards, each a step of the loop paired with the screen it happens on.
+         Phones are portrait, so they go side by side at this size rather than
+         stacked — stacking made the section three screens tall with half of
+         every row's width left empty. -->
+    <section id="how" class="band-sunken scroll-mt-20 border-t border-line">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+        <div class="max-w-2xl" data-reveal>
+          <p class="eyebrow">{loop.eyebrow}</p>
+          <h2 class="display-sm mt-3">{loop.title}</h2>
+          <p class="lede mt-4 text-[0.9375rem]">{loop.lede}</p>
+        </div>
+
+        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          {
+            loop.items.map((item, i) => (
+              <article
+                data-reveal
+                data-reveal-delay={i * 80}
+                class="flex flex-col items-center text-center"
+              >
+                <Phone screen={item.screen} size="sm" delay={i * 300} />
+
+                <div class="mt-5 max-w-[15rem]">
+                  <p
+                    class="tnum text-[0.6875rem] font-semibold tracking-[0.14em] text-faint"
+                    aria-hidden="true"
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </p>
+                  <h3 class="mt-1.5 text-base font-semibold tracking-[-0.02em]">
+                    {item.title}
+                  </h3>
+                  <p class="mt-1.5 text-sm leading-relaxed text-muted">
+                    {item.body}
+                  </p>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Features ─────────────────────────────────────────────────────── -->
+    <section id="features" class="scroll-mt-20 border-t border-line">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+        <div class="max-w-2xl" data-reveal>
+          <p class="eyebrow">{featuresIntro.eyebrow}</p>
+          <h2 class="display-sm mt-3">{featuresIntro.title}</h2>
+          <p class="lede mt-4 text-[0.9375rem]">{featuresIntro.lede}</p>
+        </div>
+
+        <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {
+            features.map((item, i) => (
+              <li data-reveal data-reveal-delay={i * 90}>
+                <div class={card}>
+                  <div class="relative z-10">
+                    <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-line">
+                      <Icon name={item.icon} class="h-[1.15rem] w-[1.15rem]" />
+                    </div>
+                    {/* h3, not h2: the section heading above owns the h2 now. */}
+                    <h3 class="text-base font-semibold tracking-[-0.02em]">
+                      {item.title}
+                    </h3>
+                    <p class="mt-1.5 text-sm leading-relaxed text-muted">
+                      {item.body}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── Closing CTA ──────────────────────────────────────────────────── -->
+    <section id="get" class="scroll-mt-20 border-t border-line">
+      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
+        <div data-reveal>
+          <div
+            class="tilt group relative flex flex-col items-center gap-8 overflow-hidden rounded-panel border border-line bg-surface p-8 transition-[transform,translate,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong sm:p-12 lg:flex-row lg:justify-between lg:text-left"
+          >
+            <div class="relative z-10 max-w-xl">
+              <h2 class="display-sm">{closing.title}</h2>
+              <p class="lede mt-4 text-[0.9375rem]">{closing.lede}</p>
+            </div>
+
+            <div
+              class="relative z-10 flex shrink-0 flex-col items-center gap-3"
+            >
+              <DownloadBadge />
+              <p
+                class="max-w-56 text-center text-[0.6875rem] leading-relaxed text-muted"
+              >
+                {closing.install}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>

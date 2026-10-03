@@ -1,0 +1,60 @@
+---
+import { site } from '../data/content';
+
+const links = [
+  { href: '#how', label: 'How it works' },
+  { href: '#features', label: 'Features' },
+];
+---
+
+<header
+  data-header
+  class="fixed inset-x-0 top-0 z-50 transition-all duration-300 data-[scrolled]:border-b data-[scrolled]:border-line data-[scrolled]:bg-bg/80 data-[scrolled]:backdrop-blur-xl"
+>
+  <!-- Reading progress hairline -->
+  <div
+    data-progress
+    aria-hidden="true"
+    class="h-px w-full origin-left scale-x-0 bg-fg transition-transform duration-150 ease-out"
+  >
+  </div>
+
+  <div class="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 sm:px-8">
+    <a href="#top" class="flex items-center gap-2.5">
+      <img src="/favicon.png" alt="" class="h-7 w-7" width="28" height="28" />
+      <span class="text-[0.95rem] font-semibold tracking-[-0.02em]">{site.name}</span>
+    </a>
+
+    <nav class="ml-auto hidden items-center gap-7 md:flex">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="text-[0.8125rem] font-medium text-muted transition-colors hover:text-fg"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+      <a
+        href={site.repoUrl}
+        target="_blank"
+        rel="noopener"
+        class="text-[0.8125rem] font-medium text-muted transition-colors hover:text-fg"
+      >
+        GitHub
+      </a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2 md:ml-0">
+      <a
+        href={site.downloadUrl}
+        target="_blank"
+        rel="noopener"
+        class="hidden items-center gap-2 rounded-full bg-fg px-4 py-2 text-[0.8125rem] font-semibold text-on-accent transition-opacity hover:opacity-85 sm:inline-flex"
+      >
+        Get the APK
+      </a>
+    </div>
+  </div>
+</header>

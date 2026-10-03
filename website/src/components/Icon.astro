@@ -1,0 +1,40 @@
+---
+/**
+ * Line icons for the feature cards. 1.5px stroke on a 24px grid so they sit at
+ * the same optical weight as the surrounding type. Each entry is a list of
+ * paths, drawn in order.
+ */
+import type { IconName } from '../data/content';
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: className = '' } = Astro.props;
+
+const paths: Record<IconName, readonly string[]> = {
+  catalogue: [
+    'M4 4h6.5v6.5H4z',
+    'M13.5 4H20v6.5h-6.5z',
+    'M4 13.5h6.5V20H4z',
+    'M13.5 13.5H20V20h-6.5z',
+  ],
+  demo: ['M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 17V7A1.5 1.5 0 0 1 4 5.5Z', 'M10.5 9.75v4.5l4-2.25-4-2.25Z'],
+  log: ['M5 4.5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z', 'M12 8.5v7M8.5 12h7'],
+  record: ['M3.5 16.5 9 11l3.5 3.5 8-8', 'M15.5 6.5h5v5'],
+};
+---
+
+<svg
+  viewBox="0 0 24 24"
+  aria-hidden="true"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={className}
+>
+  {paths[name].map((d) => <path d={d} />)}
+</svg>
