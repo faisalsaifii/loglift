@@ -6,7 +6,16 @@ import tailwindcss from '@tailwindcss/vite';
 // Static output so the site can be dropped onto any static host
 // (GitHub Pages, Netlify, Cloudflare Pages, S3) with no server runtime.
 export default defineConfig({
-  site: 'https://loglift.app',
+  // Every absolute URL the site emits comes from this one value: the canonical
+  // link, og:url, og:image, twitter:image, the JSON-LD graph, the sitemap, and
+  // the `Sitemap:` line in robots.txt.
+  //
+  // It must be the origin the site is actually served from. When it was pointed
+  // at a different domain, every tag still rendered and the card was still
+  // deployed — but link previews asked the wrong host for `og.png`, got a 404,
+  // and silently fell back to the favicon. Change it only alongside a real
+  // change of domain.
+  site: 'https://loglift.faisalsaifi.com',
   output: 'static',
   trailingSlash: 'never',
   integrations: [
