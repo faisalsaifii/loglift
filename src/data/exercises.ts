@@ -110,7 +110,7 @@ export function getGifUrl(exercise: Exercise): string {
  * Ranks `pool` against `needle`: exact name, then name prefix, then any
  * metadata hit (equipment, target, group, secondary muscles).
  */
-function rankMatches(pool: readonly Exercise[], needle: string): Exercise[] {
+export function rankMatches(pool: readonly Exercise[], needle: string): Exercise[] {
   const exact: Exercise[] = [];
   const startsWith: Exercise[] = [];
   const contains: Exercise[] = [];
@@ -147,14 +147,15 @@ export function searchExercises(
   query: string,
   options?: { limit?: number },
 ): Exercise[] {
-  const limit = options?.limit ?? 60;
   const pool = getExercisesForGroup(group);
   const needle = query.trim().toLowerCase();
 
   if (!needle) {
-    return pool.slice(0, limit);
+    const limit = options?.limit;
+    return limit === undefined ? pool : pool.slice(0, limit);
   }
 
+  const limit = options?.limit ?? 60;
   return rankMatches(pool, needle).slice(0, limit);
 }
 

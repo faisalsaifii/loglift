@@ -10,9 +10,12 @@ import { Txt } from '@/components/txt';
 import { EmptyState } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import {
+  getExercise,
   getMuscleGroup,
   MUSCLE_GROUP_IDS,
+  rankMatches,
   searchExercises,
+  type Exercise,
 } from '@/data/exercises';
 import { useLibrary } from '@/store/library';
 import { formatWeight, fromKg } from '@/utils/weight';
@@ -50,10 +53,17 @@ export default function MuscleScreen() {
     if (!group) {
       return [];
     }
-    const matches = searchExercises(group.id, query, { limit: BROWSE_LIMIT });
-    return scope === 'mine'
-      ? matches.filter((exercise) => addedIds.has(exercise.id))
-      : matches;
+    if (scope === 'mine') {
+      const libraryExercises = Array.from(addedIds)
+        .map((id) => getExercise(id))
+        .filter((ex): ex is Exercise => ex !== undefined && ex.group === group.id);
+      if (!query.trim()) {
+        return libraryExercises;
+      }
+      return rankMatches(libraryExercises, query.trim()).slice(0, BROWSE_LIMIT);
+    }
+    const matches = searchExercises(group.id, query, { limit: query.trim() ? BROWSE_LIMIT : undefined });
+    return matches;
   }, [group, query, scope, addedIds]);
 
   // Resolving and formatting every row's best set on each keystroke would be

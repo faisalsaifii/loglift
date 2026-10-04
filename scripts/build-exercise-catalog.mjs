@@ -147,7 +147,7 @@ async function main() {
   await mkdir(path.dirname(OUTPUT_FILE), { recursive: true });
   await writeFile(OUTPUT_FILE, `${JSON.stringify(catalog)}\n`, 'utf8');
 
-  const bytes = Buffer.byteLength(JSON.stringify(catalog));
+  const bytes = new TextEncoder().encode(JSON.stringify(catalog)).length;
   const perGroup = {};
   for (const exercise of catalog.exercises) {
     perGroup[exercise.group] = (perGroup[exercise.group] ?? 0) + 1;
