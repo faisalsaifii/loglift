@@ -1,6 +1,7 @@
 import MaterialDesignIcons, {
   type MaterialDesignIconsIconName,
 } from '@react-native-vector-icons/material-design-icons';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { Platform, type ImageStyle, type StyleProp } from 'react-native';
 
@@ -47,9 +48,24 @@ export const ICONS = {
   sparkle: { sf: 'sparkles', md: 'auto-fix' },
   link: { sf: 'square.and.arrow.up', md: 'open-in-new' },
   target: { sf: 'scope', md: 'target' },
+  upload: { sf: 'square.and.arrow.up', md: 'upload' },
+  download: { sf: 'square.and.arrow.down', md: 'download' },
 } as const satisfies Record<string, { sf: SFSymbol; md: MaterialDesignIconsIconName }>;
 
 export type IconName = keyof typeof ICONS;
+
+/**
+ * Whether the binary actually provides the SF Symbols view.
+ *
+ * `expo-symbols` cannot degrade on its own: `requireNativeViewManager` always
+ * returns a component, so its `fallback` prop is unreachable when the native
+ * module is missing, and Fabric throws
+ * "View config getter callback for component ViewManagerAdapter_SymbolModule
+ * must be a function" instead. Probing once lets us drop to the Material glyph
+ * — the iOS font is registered by the vector-icons config plugin — so a stale
+ * binary costs icon fidelity rather than the whole screen.
+ */
+const hasSymbolView = requireOptionalNativeModule('SymbolModule') != null;
 
 type IconProps = {
   name: IconName;
@@ -63,7 +79,7 @@ type IconProps = {
 export function Icon({ name, size = 20, color, weight = 'regular', style }: IconProps) {
   const glyph = ICONS[name];
 
-  if (Platform.OS === 'ios') {
+  if (Platform.OS === 'ios' && hasSymbolView) {
     return (
       <SymbolView
         name={glyph.sf}

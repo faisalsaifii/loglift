@@ -33,12 +33,19 @@ export type ExerciseLog = {
   prs: PrEntry[];
 };
 
-type PersistedState = {
+/**
+ * The shape of the persisted state, and of an export file. Kept free of
+ * anything transient so a snapshot can be serialised as-is and read back
+ * through the same validation used for storage.
+ */
+export type LibrarySnapshot = {
   unit: WeightUnit;
   logs: Record<string, ExerciseLog>;
 };
 
-const EMPTY_STATE: PersistedState = { unit: 'kg', logs: {} };
+type PersistedState = LibrarySnapshot;
+
+const EMPTY_STATE: LibrarySnapshot = { unit: 'kg', logs: {} };
 
 type BestPr = {
   weightKg: number;
@@ -70,6 +77,10 @@ type LibraryContextValue = {
   };
   /** Flat, newest-first list of every PR with its exercise resolved. */
   recentPrs: { entry: PrEntry; exerciseId: string }[];
+  /** The whole library as a serialisable snapshot, for export. */
+  getSnapshot: () => LibrarySnapshot;
+  /** Replaces the whole library. Used by import; expect one storage write. */
+  replaceAll: (snapshot: LibrarySnapshot) => void;
   clearAll: () => void;
 };
 
@@ -97,7 +108,12 @@ function parseJson(raw: string): unknown {
   }
 }
 
-function sanitise(value: unknown): PersistedState {
+/**
+ * Coerces an untrusted object into a usable state, dropping anything
+ * unrecognised. Exported so an imported backup file goes through exactly the
+ * same validation as storage does.
+ */
+export function sanitise(value: unknown): LibrarySnapshot {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return EMPTY_STATE;
   }
@@ -267,6 +283,21 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   }, [mutate]);
 
+  const getSnapshot = useCallback(
+    () => ({ unit: stateRef.current.unit, logs: stateRef.current.logs }),
+    []
+  );
+
+  // Runs through `mutate` rather than the per-record setters so a whole-file
+  // import lands in a single storage write instead of one per exercise.
+  const replaceAll = useCallback(
+    (snapshot: LibrarySnapshot) => {
+      mutate(() => snapshot);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    },
+    [mutate]
+  );
+
   const value = useMemo<LibraryContextValue>(() => {
     const logs = state.logs;
     const library = Object.values(logs).sort((a, b) => b.addedAt.localeCompare(a.addedAt));
@@ -324,9 +355,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         byGroup,
       },
       recentPrs,
+      getSnapshot,
+      replaceAll,
       clearAll,
     };
-  }, [state, isReady, setUnit, toggleAdded, addPr, removePr, clearAll]);
+  }, [state, isReady, setUnit, toggleAdded, addPr, removePr, getSnapshot, replaceAll, clearAll]);
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }
