@@ -5,6 +5,8 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { Platform, type ImageStyle, type StyleProp } from 'react-native';
 
+import { BodyIcon, isBodyIcon } from '@/components/body-icon';
+
 /**
  * Every icon in the app is declared once here with its iOS SF Symbol and its
  * Android/web Material Design glyph, so a rename in either font is a type error
@@ -15,11 +17,11 @@ export const ICONS = {
   progress: { sf: 'chart.line.uptrend.xyaxis', md: 'trending-up' },
   settings: { sf: 'gearshape', md: 'cog' },
 
-  chest: { sf: 'heart.fill', md: 'heart' },
-  back: { sf: 'figure.rower', md: 'rowing' },
-  shoulders: { sf: 'figure.strengthtraining.traditional', md: 'human-male' },
-  biceps: { sf: 'bolt.fill', md: 'arm-flex' },
-  triceps: { sf: 'figure.strengthtraining.functional', md: 'gymnastics' },
+  chest: { sf: 'figure.strengthtraining.traditional', md: 'weight-lifter' },
+  back: { sf: 'figure.arms.open', md: 'human-handsup' },
+  shoulders: { sf: 'figure.boxing', md: 'boxing-glove' },
+  biceps: { sf: 'dumbbell.fill', md: 'arm-flex' },
+  triceps: { sf: 'figure.highintensity.intervaltraining', md: 'arm-flex-outline' },
   legs: { sf: 'figure.run', md: 'run' },
   core: { sf: 'figure.core.training', md: 'yoga' },
   /** Not a muscle group: the catch-all row that lists the whole catalogue. */
@@ -77,6 +79,10 @@ type IconProps = {
 };
 
 export function Icon({ name, size = 20, color, weight = 'regular', style }: IconProps) {
+  if (isBodyIcon(name)) {
+    return <BodyIcon name={name} size={size} color={color} />;
+  }
+
   const glyph = ICONS[name];
 
   if (Platform.OS === 'ios' && hasSymbolView) {

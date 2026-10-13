@@ -105,8 +105,8 @@ function MuscleRow({ label, icon, count, onPress }: MuscleRowProps) {
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <View style={[styles.rowIcon, { backgroundColor: colors.surfaceSunken }]}>
-        <Icon name={icon} size={18} color={colors.text} weight="semibold" />
+      <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+        <Icon name={icon} size={24} color={colors.accent} weight="semibold" />
       </View>
       <Txt variant="subheading" numberOfLines={1} style={styles.rowLabel}>
         {label}
@@ -129,21 +129,20 @@ function MuscleRow({ label, icon, count, onPress }: MuscleRowProps) {
 const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
-    // Inset to the label's left edge, the way a native grouped list separates rows.
-    marginLeft: Spacing.four + 30 + Spacing.three,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
     minHeight: 52,
-    paddingHorizontal: Spacing.four,
+    paddingLeft: Spacing.two,
+    paddingRight: Spacing.four,
     paddingVertical: Spacing.two,
   },
   rowIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: Radii.sm,
+    width: 36,
+    height: 36,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
