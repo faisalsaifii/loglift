@@ -25,6 +25,7 @@ import {
   formatGrams,
   formatKcal,
   MEALS,
+  parseDayKey,
   shiftDay,
   sumNutrients,
   type FoodEntry,
@@ -51,8 +52,10 @@ export default function DietScreen() {
   const { foodLog, goals, removeFoodEntry, isReady } = useLibrary();
   const [day, setDay] = useState(() => dayKey());
   const [editingGoals, setEditingGoals] = useState(false);
+  const [pickingDate, setPickingDate] = useState(false);
 
   const entries = useMemo(() => foodLog.filter((entry) => entry.day === day), [foodLog, day]);
+  const loggedDays = useMemo(() => new Set(foodLog.map((entry) => entry.day)), [foodLog]);
   const totals = useMemo(() => sumNutrients(entries), [entries]);
   const isToday = day === dayKey();
 
@@ -80,6 +83,18 @@ export default function DietScreen() {
           <Txt variant="heading">{formatDay(day)}</Txt>
         </Pressable>
         <DayButton direction="next" label="Next day" onPress={() => setDay(shiftDay(day, 1))} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pick a date"
+          onPress={() => setPickingDate(true)}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.dayButton,
+            { backgroundColor: colors.surfaceSunken, borderColor: colors.border },
+            pressed && styles.pressed,
+          ]}>
+          <Icon name="calendar" size={18} color={colors.accent} />
+        </Pressable>
       </View>
 
       <Card>
@@ -179,7 +194,125 @@ export default function DietScreen() {
       ) : null}
 
       <GoalsDialog visible={editingGoals} onClose={() => setEditingGoals(false)} />
+      <CalendarDialog
+        visible={pickingDate}
+        selected={day}
+        loggedDays={loggedDays}
+        onClose={() => setPickingDate(false)}
+        onSelect={(next) => {
+          setDay(next);
+          setPickingDate(false);
+        }}
+      />
     </Screen>
+  );
+}
+
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function CalendarDialog({
+  visible,
+  selected,
+  loggedDays,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  selected: string;
+  loggedDays: Set<string>;
+  onClose: () => void;
+  onSelect: (day: string) => void;
+}) {
+  const colors = useTheme();
+  const [month, setMonth] = useState(() => parseDayKey(selected));
+  const today = dayKey();
+
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const leading = new Date(year, monthIndex, 1).getDay();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const cells: (string | null)[] = [
+    ...Array<null>(leading).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => dayKey(new Date(year, monthIndex, i + 1))),
+  ];
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  const shiftMonth = (delta: number) => setMonth(new Date(year, monthIndex + delta, 1));
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      onShow={() => setMonth(parseDayKey(selected))}>
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+        <View style={[styles.dialog, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.calendarHeader}>
+            <DayButton direction="prev" label="Previous month" onPress={() => shiftMonth(-1)} />
+            <Txt variant="heading">
+              {month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            </Txt>
+            <DayButton direction="next" label="Next month" onPress={() => shiftMonth(1)} />
+          </View>
+          <View style={styles.calendarRow}>
+            {WEEKDAYS.map((label, i) => (
+              <View key={i} style={styles.calendarCell}>
+                <Txt variant="caption" tone="secondary">
+                  {label}
+                </Txt>
+              </View>
+            ))}
+          </View>
+          <View style={styles.calendarGrid}>
+            {cells.map((key, i) => {
+              if (!key) {
+                return <View key={`blank-${i}`} style={styles.calendarCell} />;
+              }
+              const isSelected = key === selected;
+              const isToday = key === today;
+              return (
+                <Pressable
+                  key={key}
+                  accessibilityRole="button"
+                  accessibilityLabel={parseDayKey(key).toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => onSelect(key)}
+                  style={styles.calendarCell}>
+                  <View
+                    style={[
+                      styles.calendarDay,
+                      isSelected && { backgroundColor: colors.accent },
+                      !isSelected && isToday && { borderWidth: 1, borderColor: colors.accent },
+                    ]}>
+                    <Txt variant="label" style={isSelected ? { color: colors.surface } : undefined}>
+                      {parseDayKey(key).getDate()}
+                    </Txt>
+                  </View>
+                  <View
+                    style={[
+                      styles.calendarDot,
+                      loggedDays.has(key) && { backgroundColor: colors.accent },
+                    ]}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.dialogActions}>
+            <Button label="Cancel" variant="secondary" onPress={onClose} style={styles.flex} />
+            <Button label="Today" onPress={() => onSelect(today)} style={styles.flex} />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -389,6 +522,36 @@ const styles = StyleSheet.create({
   },
   hint: {
     textAlign: 'center',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  calendarRow: {
+    flexDirection: 'row',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarCell: {
+    width: `${100 / 7}%`,
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  calendarDay: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
   },
   backdrop: {
     flex: 1,
