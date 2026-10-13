@@ -1,60 +1,44 @@
 /**
- * Generates `public/og.png`, the link-preview card.
+ * Generates `public/og.png`, the 1200x630 link-preview card.
  *
  *     pnpm og
  *
- * ## Why a generated card
+ * ## How it works
  *
- * The card has to be 1200x630. The app icon is 1000x1000, and a square image in a
- * `summary_large_image` slot gets centre-cropped or letterboxed depending on the
- * platform — so the icon alone is not a usable card, whatever it is tagged as.
+ * The card is an HTML page set in the same faces and palette as the landing page
+ * (poster grotesque, italic serif, hollow Anton, mono), screenshotted by headless
+ * Chrome or Edge. An earlier version drew an SVG through librsvg, but librsvg only
+ * sees locally installed fonts, so it could never match a page set in webfonts.
  *
- * ## Why it is generated rather than drawn by hand
+ * Every string comes from `src/data/content.ts`, compiled in memory and imported,
+ * so the movement count and version on the card cannot disagree with the page.
+ * The colours are read out of `src/styles/global.css` for the same reason.
  *
- * Every string on the card is read out of `src/data/content.ts`, the same module
- * the page itself renders from. That is the whole point: the movement count in
- * the card cannot disagree with the movement count on the page, and re-running
- * this after a copy edit keeps it that way. A hand-drawn PNG would be correct
- * once and quietly wrong after the next release.
+ * ## Requirements
+ *
+ * A Chromium browser (Chrome, Edge, Chromium) and a network connection, because
+ * the fonts are fetched from Google Fonts while the page renders. Set `CHROME_PATH`
+ * to use a browser in a non-standard location.
  *
  * ## Output is committed
  *
- * `dist/` is static and the card is a plain file in `public/`, so there is nothing
- * to gain by generating it during `astro build` — the asset is committed and this
- * script only runs when somebody changes the copy. Run it again after editing
- * anything in `content.ts` that appears on the card.
- *
- * ## Fonts
- *
- * The stack is read out of `src/styles/global.css` at run time and applied to the
- * root `<svg>`, so the card is set in whatever face the page is set in and cannot
- * drift when that changes.
- *
- * The page loads no webfont — `--font-sans` is a system stack, and the browser
- * resolves it per platform (SF Pro on Apple, Segoe UI on Windows, Roboto on
- * Android). librsvg resolves the same list through fontconfig, skipping the two
- * entries that are browser keywords rather than families (`-apple-system`,
- * `BlinkMacSystemFont`) and landing on the first family installed on whichever
- * machine ran this. So the card matches the page for whoever regenerates it, but
- * not necessarily the page for whoever is looking at it — the asset is committed
- * precisely so that only one machine's resolution ever ships.
- *
- * The face cannot be embedded: Segoe UI and SF Pro are licensed for local use
- * only, and vendoring either into a public repo is not an option.
+ * The PNG lives in `public/` and is committed; this only needs to run when copy,
+ * the version or the palette change.
  *
  * ## Verification
  *
- * A successful exit is not evidence the card is right. Two failures are silent:
- * a stack fontconfig cannot resolve renders every string as nothing, and a face
- * with different metrics pushes an absolutely-positioned line past the right
- * margin, where the 1200px frame silently crops it. The card is measured after
- * rasterising and the script fails on either.
+ * A zero exit code is not proof the card is right. The result is checked for its
+ * exact size, and for ink in the headline and footer bands, since a font that
+ * failed to load still produces a valid PNG.
  */
 
+import { spawnSync } from 'node:child_process';
 import { Buffer } from 'node:buffer';
-import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import sharp from 'sharp';
 
@@ -66,48 +50,29 @@ const GLOBAL_CSS = path.join(ROOT, 'src', 'styles', 'global.css');
 const WIDTH = 1200;
 const HEIGHT = 630;
 
-/** Page margin. The card has no responsive geometry, so this is literal. */
-const M = 88;
-const RIGHT = WIDTH - M;
+const FONTS_URL =
+  'https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap';
 
-/** Mirrors the `:root` palette in `src/styles/global.css`. */
-const C = {
-  bg: '#000000',
-  fg: '#ffffff',
-  muted: '#98989f',
-  line: '#38383a',
-};
-
-/**
- * The site's `--font-sans`, read out of `global.css` rather than restated here.
- *
- * The card used to carry its own copy of the stack, which is exactly the kind of
- * duplication that rots: a change to the font in the stylesheet would have left
- * the card on the old face with nothing to flag it. There is one declaration now,
- * and the card follows it.
- *
- * The value is spliced in verbatim, so the quirks of a CSS system stack survive
- * intact. `-apple-system` and `BlinkMacSystemFont` are not families fontconfig
- * can resolve — they are keywords the browser maps to the platform UI face — so
- * librsvg skips over them and lands on the same family the page does on the
- * machine doing the rendering. Nothing here needs to reorder or filter them.
- */
-async function loadSiteFont() {
+/** Reads a `--token: value;` out of the `:root` block of the site stylesheet. */
+async function loadPalette() {
   const css = await readFile(GLOBAL_CSS, 'utf8');
-  const decl = css.match(/--font-sans:\s*([^;]+);/);
-  if (!decl) throw new Error(`No --font-sans declaration in ${GLOBAL_CSS}`);
-
-  // The declaration wraps across lines; collapse to single spaces so the stack is
-  // a valid CSS font-family list rather than one with embedded newlines.
-  return decl[1].replace(/\s+/g, ' ').trim();
+  const root = css.match(/:root\s*{([^}]*)}/)?.[1] ?? '';
+  const get = (name) => {
+    const value = root.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1]?.trim();
+    if (!value) throw new Error(`No --${name} in :root of ${GLOBAL_CSS}`);
+    return value;
+  };
+  return {
+    bg: get('bg'),
+    fg: get('fg'),
+    muted: get('muted'),
+    line: get('line'),
+    accent: get('accent'),
+    onAccent: get('on-accent'),
+  };
 }
 
-/**
- * Compiles `content.ts` in memory and imports it, so this script reads the exact
- * module the page renders from instead of a copy of it. esbuild is a declared
- * devDependency rather than a transitive one, so nothing here depends on which
- * bundler Astro happens to ship.
- */
+/** Compiles `content.ts` in memory and imports it. */
 async function loadContent() {
   const { build } = await import('esbuild');
   const { outputFiles } = await build({
@@ -121,70 +86,116 @@ async function loadContent() {
   return import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
 }
 
-/** XML text-node escaping. The copy is authored, not user input, but the SVG is. */
+function findBrowser() {
+  const candidates = [
+    process.env.CHROME_PATH,
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+  ].filter(Boolean);
+  const found = candidates.find((p) => existsSync(p));
+  if (!found) {
+    throw new Error('No Chrome/Edge found. Install one or set CHROME_PATH.');
+  }
+  return found;
+}
+
 const esc = (s) =>
   String(s).replace(
     /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c],
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 
-function buildSvg({ icon, font, name, headline, note, footerLeft, footerRight }) {
-  // Graph paper at the same 34px pitch as `.grid-tex`, drawn rather than linked so
-  // the card needs no second asset and no external fetch during rasterisation.
-  const grid = [];
-  for (let x = M; x <= RIGHT; x += 34) {
-    grid.push(`<line x1="${x}" y1="0" x2="${x}" y2="${HEIGHT}"/>`);
+function buildHtml({ c, icon, name, headline, version, footerLeft, footerRight }) {
+  const [one, two, three] = headline;
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="${FONTS_URL}" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: ${WIDTH}px; height: ${HEIGHT}px; overflow: hidden; background: ${c.bg}; }
+  body {
+    position: relative;
+    color: ${c.fg};
+    font-family: 'Bricolage Grotesque', sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  for (let y = 0; y <= HEIGHT; y += 34) {
-    grid.push(`<line x1="0" y1="${y}" x2="${WIDTH}" y2="${y}"/>`);
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, ${c.line} 1px, transparent 1px),
+      linear-gradient(to bottom, ${c.line} 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 80% at 35% 40%, #000 15%, transparent 75%);
   }
-
-  // The hero's three beats, one per line, last one in `muted` so it reads as a
-  // landing rather than a run-on sentence. Sizes and baselines are literal
-  // because the card is a fixed 1200x630 and never reflows.
-  const HEAD_SIZE = 58;
-  const HEAD_LH = 64;
-  const headTop = 254;
-  const headLines = headline
-    .map(
-      (line, i) =>
-        `<text x="${M}" y="${headTop + i * HEAD_LH}" font-size="${HEAD_SIZE}" font-weight="600" letter-spacing="-1.8" fill="${
-          i === headline.length - 1 ? C.muted : C.fg
-        }">${esc(line)}</text>`,
-    )
-    .join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="${esc(font)}">
-  <defs>
-    <radialGradient id="glow" cx="50%" cy="0%" r="70%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
-      <stop offset="65%" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/>
-      <feColorMatrix type="saturate" values="0"/>
-    </filter>
-    <clipPath id="rounded"><rect width="${WIDTH}" height="${HEIGHT}" rx="0"/></clipPath>
-  </defs>
-
-  <g clip-path="url(#rounded)">
-    <rect width="${WIDTH}" height="${HEIGHT}" fill="${C.bg}"/>
-    <g stroke="${C.fg}" stroke-width="1" opacity="0.05">${grid.join('')}</g>
-    <rect width="${WIDTH}" height="420" fill="url(#glow)"/>
-    <rect width="${WIDTH}" height="${HEIGHT}" filter="url(#grain)" opacity="0.05" style="mix-blend-mode:overlay"/>
-
-    <image x="${M}" y="82" width="80" height="80" xlink:href="data:image/png;base64,${icon}"/>
-    <text x="${M + 80 + 22}" y="136" font-size="32" font-weight="600" letter-spacing="-0.6" fill="${C.fg}">${esc(name)}</text>
-
-    ${headLines}
-
-    <text x="${M}" y="${headTop + headline.length * HEAD_LH + 22}" font-size="22" letter-spacing="0.1" fill="${C.muted}">${esc(note)}</text>
-
-    <line x1="${M}" y1="512.5" x2="${RIGHT}" y2="512.5" stroke="${C.line}" stroke-width="1"/>
-    <text x="${M}" y="560" font-size="22" fill="${C.muted}">${esc(footerLeft)}</text>
-    <text x="${RIGHT}" y="560" font-size="22" fill="${C.muted}" text-anchor="end">${esc(footerRight)}</text>
-  </g>
-</svg>`;
+  .glow {
+    position: absolute; right: -180px; top: -220px; width: 760px; height: 760px; border-radius: 50%;
+    background: radial-gradient(circle, ${c.accent}66, transparent 65%);
+  }
+  .wrap { position: absolute; inset: 0; padding: 52px 72px 0; }
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .brand img { width: 52px; height: 52px; border-radius: 12px; }
+  .poster {
+    font-weight: 800; font-stretch: 75%; font-variation-settings: 'wdth' 75;
+    text-transform: uppercase; letter-spacing: -0.035em; line-height: 0.86;
+  }
+  .brand span { font-size: 34px; }
+  .pill {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid ${c.line}; border-radius: 999px; padding: 6px 20px 6px 6px;
+    font: 500 17px 'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: ${c.muted};
+  }
+  .pill b { background: ${c.accent}; color: ${c.onAccent}; border-radius: 999px; padding: 6px 13px; font-weight: 600; }
+  h1 { margin-top: 34px; font-size: 118px; }
+  h1 .l { display: block; }
+  .serif {
+    font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400;
+    font-stretch: 100%; font-variation-settings: normal; text-transform: none;
+    letter-spacing: -0.02em; color: ${c.accent}; font-size: 1.16em; line-height: 0.92;
+  }
+  .outline {
+    font-family: 'Anton', sans-serif; font-weight: 400; font-stretch: 100%;
+    font-variation-settings: normal; letter-spacing: 0.005em;
+    color: transparent; -webkit-text-stroke: 2px ${c.fg};
+  }
+  .foot {
+    position: absolute; left: 72px; right: 72px; bottom: 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 20px; border-top: 1px solid ${c.line};
+    font: 500 19px 'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: ${c.muted};
+  }
+  .foot em { font-style: normal; color: ${c.accent}; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <img src="data:image/png;base64,${icon}" alt="" />
+        <span class="poster">${esc(name)}</span>
+      </div>
+      <div class="pill"><b>New</b>v${esc(version)} · Direct APK</div>
+    </div>
+    <h1 class="poster">
+      <span class="l">${esc(one)}</span>
+      <span class="l serif">${esc(two)}</span>
+      <span class="l outline">${esc(three)}</span>
+    </h1>
+  </div>
+  <div class="foot"><span>${esc(footerLeft)}</span><span><em>●</em> ${esc(footerRight)}</span></div>
+</body>
+</html>`;
 }
 
 const { site, hero, total, bodyParts, seo } = await loadContent();
@@ -196,105 +207,74 @@ if (seo.ogImage.width !== WIDTH || seo.ogImage.height !== HEIGHT) {
   );
 }
 
+const c = await loadPalette();
 const icon = (await readFile(path.join(ROOT, 'public', 'app-icon.png'))).toString('base64');
-const font = await loadSiteFont();
-
-const svg = buildSvg({
+const html = buildHtml({
+  c,
   icon,
-  font,
   name: site.name,
   headline: hero.title,
-  note: hero.note,
+  version: site.version,
   footerLeft: `${total.toLocaleString('en-US')} movements · ${bodyParts.length} body parts`,
-  footerRight: `Free Android APK · v${site.version}`,
+  footerRight: 'Free · No account · No tracking',
 });
 
 const out = path.join(ROOT, 'public', seo.ogImage.file);
-await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(out);
+const tmp = await mkdtemp(path.join(os.tmpdir(), 'loglift-og-'));
+const page = path.join(tmp, 'card.html');
+const shot = path.join(tmp, 'card.png');
 
-// Confirm the rasterised result rather than trusting that it wrote a file.
+try {
+  await writeFile(page, html);
+
+  const result = spawnSync(
+    findBrowser(),
+    [
+      '--headless=new',
+      '--disable-gpu',
+      '--hide-scrollbars',
+      '--force-device-scale-factor=1',
+      `--window-size=${WIDTH},${HEIGHT + 200}`,
+      '--virtual-time-budget=15000',
+      `--screenshot=${shot}`,
+      pathToFileURL(page).href,
+    ],
+    { encoding: 'utf8', timeout: 60_000 },
+  );
+  if (!existsSync(shot)) {
+    throw new Error(`Browser produced no screenshot.\n${result.stderr ?? ''}`);
+  }
+
+  // Headless window heights are unreliable, so render taller and crop to the card.
+  await sharp(shot)
+    .extract({ left: 0, top: 0, width: WIDTH, height: HEIGHT })
+    .png({ compressionLevel: 9 })
+    .toFile(out);
+} finally {
+  await rm(tmp, { recursive: true, force: true });
+}
+
 const meta = await sharp(out).metadata();
 if (meta.width !== WIDTH || meta.height !== HEIGHT) {
   throw new Error(`Wrote ${meta.width}x${meta.height}, expected ${WIDTH}x${HEIGHT}`);
 }
 
-/**
- * Measures the ink instead of trusting the geometry.
- *
- * Two things can go wrong that a successful exit code will not catch. Text can
- * fail to rasterise at all — librsvg resolving no font still writes a perfectly
- * valid, correctly-sized PNG. And a face change moves every metric: the
- * headline and the footer are sized in absolute pixels, so swapping the stack
- * can silently push a line past the right margin, where it is simply cropped by
- * the 1200px frame. Neither is visible without looking, and this script has no
- * way to look.
- *
- * `THRESHOLD` is chosen to sit above the grid (5% white) and the radial glow
- * (15% at its brightest), so only the icon and the type are counted.
- */
-const THRESHOLD = 60;
-
-const { data } = await sharp(out)
-  .greyscale()
-  .raw()
-  .toBuffer({ resolveWithObject: true });
-
-/** Lit-pixel extents of a horizontal band, or null if the band is blank. */
-function inkIn(y0, y1) {
-  let minX = Infinity;
-  let maxX = -Infinity;
+/** Lit-pixel count in a horizontal band, using the accent-free luminance. */
+const { data } = await sharp(out).greyscale().raw().toBuffer({ resolveWithObject: true });
+function ink(y0, y1) {
   let count = 0;
   for (let y = y0; y < y1; y++) {
-    for (let x = 0; x < WIDTH; x++) {
-      if (data[y * WIDTH + x] > THRESHOLD) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        count++;
-      }
-    }
+    for (let x = 0; x < WIDTH; x++) if (data[y * WIDTH + x] > 110) count++;
   }
-  return count === 0 ? null : { minX, maxX, count };
+  return count;
 }
 
-const bands = {
-  'wordmark   y100-160': inkIn(100, 160),
-  'headline   y195-400': inkIn(195, 400),
-  'note       y425-465': inkIn(425, 465),
-  'footer     y535-575': inkIn(535, 575),
-};
-
-const problems = [];
-
-if (!bands['headline   y195-400']) {
-  problems.push(
-    'the headline rendered no pixels — fontconfig resolved nothing from:\n' +
-      `      ${font}`,
-  );
-}
-
-for (const [label, ink] of Object.entries(bands)) {
-  if (!ink) {
-    problems.push(`${label} is blank`);
-    continue;
-  }
-  // Right-overflow is the silent one, so it is the one worth failing on. The
-  // left is anchored to the margin by construction and only needs reporting.
-  if (ink.maxX > RIGHT) {
-    problems.push(`${label} overruns the right margin by ${ink.maxX - RIGHT}px`);
-  }
-}
-
-if (problems.length > 0) {
-  throw new Error(`Card did not come out right:\n  - ${problems.join('\n  - ')}`);
+const bands = { 'headline y150-500': ink(150, 500), 'footer   y560-600': ink(560, 600) };
+const blank = Object.entries(bands).filter(([, n]) => n < 500);
+if (blank.length > 0) {
+  throw new Error(`Card did not come out right — no ink in: ${blank.map(([k]) => k).join(', ')}`);
 }
 
 const { size } = await stat(out);
 console.log(`public/${seo.ogImage.file}  ${meta.width}x${meta.height}  ${(size / 1024).toFixed(1)} KB`);
-console.log(`font: ${font}`);
-for (const [label, ink] of Object.entries(bands)) {
-  const rightGap = RIGHT - ink.maxX;
-  console.log(
-    `  ${label}  x ${String(ink.minX).padStart(4)}..${String(ink.maxX).padStart(4)}` +
-      `  ${String(ink.count).padStart(6)} px  ${String(rightGap).padStart(4)}px to margin`,
-  );
-}
+for (const [label, n] of Object.entries(bands)) console.log(`  ${label}  ${n} px`);

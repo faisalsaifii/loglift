@@ -2,8 +2,8 @@
  * Motion runtime.
  *
  * Deliberately small and framework-free: the page is static HTML, so every effect
- * here is either a scroll listener or an IntersectionObserver flipping a class.
- * Nothing in this file reads layout during a scroll handler.
+ * here is either a scroll listener, a pointer listener or an IntersectionObserver
+ * flipping a class. Nothing in this file reads layout during a scroll handler.
  *
  * Two hard rules:
  *  - Every listener is passive and coalesced into a single rAF.
@@ -48,8 +48,6 @@ function initReveal() {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const el = entry.target as HTMLElement;
-        // Read the stagger from markup at reveal time rather than inlining a
-        // style attribute, so the delay lives next to the delay it staggers.
         el.style.setProperty(
           '--reveal-delay',
           `${Number(el.dataset.revealDelay ?? 0)}ms`,
@@ -58,7 +56,7 @@ function initReveal() {
         observer.unobserve(el);
       }
     },
-    { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
+    { rootMargin: '0px 0px -10% 0px', threshold: 0.1 },
   );
 
   targets.forEach((el) => observer.observe(el));
@@ -86,41 +84,60 @@ function initHeader() {
   sync();
 }
 
-/* ── 3D tilt ──────────────────────────────────────────────────────────────── */
+/* ── Pointer spotlight ────────────────────────────────────────────────────── */
 
-function initTilt() {
-  const cards = document.querySelectorAll<HTMLElement>('[data-tilt]');
-  if (!cards.length || prefersReduced() || !canHover()) return;
+function initSpotlight() {
+  if (prefersReduced() || !canHover()) return;
 
-  const MAX_TILT = 4.5;
-
-  for (const card of cards) {
-    const paint = rafThrottle((rx: number, ry: number, mx: number, my: number) => {
-      card.style.setProperty('--rx', `${rx.toFixed(2)}deg`);
-      card.style.setProperty('--ry', `${ry.toFixed(2)}deg`);
-      card.style.setProperty('--mx', `${(mx * 100).toFixed(1)}%`);
-      card.style.setProperty('--my', `${(my * 100).toFixed(1)}%`);
+  for (const tile of document.querySelectorAll<HTMLElement>('.tile')) {
+    const paint = rafThrottle((x: number, y: number) => {
+      tile.style.setProperty('--mx', `${x}px`);
+      tile.style.setProperty('--my', `${y}px`);
     });
 
-    card.addEventListener(
+    tile.addEventListener(
       'pointermove',
       (event) => {
-        const box = card.getBoundingClientRect();
-        const px = (event.clientX - box.left) / box.width;
-        const py = (event.clientY - box.top) / box.height;
-        card.classList.add('is-tilting');
-        // Positive clientY points down, so invert it to tilt "away" from the cursor.
-        paint((0.5 - py) * MAX_TILT * 2, (px - 0.5) * MAX_TILT * 2, px, py);
+        const box = tile.getBoundingClientRect();
+        paint(event.clientX - box.left, event.clientY - box.top);
       },
       { passive: true },
     );
-
-    card.addEventListener('pointerleave', () => {
-      card.classList.remove('is-tilting');
-      card.style.setProperty('--rx', '0deg');
-      card.style.setProperty('--ry', '0deg');
-    });
   }
+}
+
+/* ── Count-up ─────────────────────────────────────────────────────────────── */
+
+function initCounters() {
+  const nodes = document.querySelectorAll<HTMLElement>('[data-count]');
+  if (!nodes.length || prefersReduced() || !('IntersectionObserver' in window)) return;
+
+  const format = new Intl.NumberFormat('en-US');
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const el = entry.target as HTMLElement;
+        observer.unobserve(el);
+
+        const to = Number(el.dataset.count);
+        const start = performance.now();
+        const run = (now: number) => {
+          const t = Math.min((now - start) / 1600, 1);
+          const eased = 1 - Math.pow(1 - t, 4);
+          el.textContent = format.format(Math.round(to * eased));
+          if (t < 1) requestAnimationFrame(run);
+        };
+        requestAnimationFrame(run);
+      }
+    },
+    { threshold: 0.6 },
+  );
+
+  nodes.forEach((el) => {
+    el.textContent = '0';
+    observer.observe(el);
+  });
 }
 
 /* ── Boot ─────────────────────────────────────────────────────────────────── */
@@ -128,7 +145,8 @@ function initTilt() {
 function boot() {
   initHeader();
   initReveal();
-  initTilt();
+  initSpotlight();
+  initCounters();
 }
 
 if (document.readyState === 'loading') {

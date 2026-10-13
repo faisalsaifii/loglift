@@ -1,16 +1,16 @@
 ---
 import DownloadBadge from '../components/DownloadBadge.astro';
-import Icon from '../components/Icon.astro';
-import Phone from '../components/Phone.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteNav from '../components/SiteNav.astro';
 import {
+  bodyParts,
   closing,
   features,
   featuresIntro,
   hero,
   loop,
   site,
+  stats,
   structuredData,
 } from '../data/content';
 import Base from '../layouts/Base.astro';
@@ -23,28 +23,29 @@ import Base from '../layouts/Base.astro';
 const jsonLd = structuredData(Astro.site ?? Astro.url);
 
 /**
- * The headline animates word by word, so it is flattened into one list of words
- * up front. The last sentence is set in `muted` — that is what makes it read as
- * three beats rather than one long clause.
+ * The headline is three lines, each with its own voice: plain poster type, then
+ * violet italic serif, then hollow outline. Words are flattened so each can animate
+ * on its own delay, but the line they belong to is kept.
  */
-const headline = hero.title.flatMap((sentence, i) =>
-  sentence
-    .split(' ')
-    .map((word) => ({ word, muted: i === hero.title.length - 1 })),
-);
+const lineStyles = [
+  '',
+  'aside text-accent text-[1.14em] normal-case',
+  'outline-type',
+] as const;
 
-/**
- * Shared hover treatment for every card on the page. The tilt transform lives on
- * this inner element rather than on the `<li>`, because `data-reveal` animates
- * `transform` on the list item and the two would otherwise overwrite each other.
- *
- * `transform` has to be in the transition list alongside `translate` and
- * `border-color`: Tailwind utilities land in the utilities layer, which overrides
- * `.tilt`'s own `transition` shorthand, and a shorthand only wins per-property.
- * Drop `transform` and the tilt snaps instead of easing.
- */
-const card =
-  'tilt group relative flex h-full flex-col overflow-hidden rounded-panel border border-line bg-surface p-6 transition-[transform,translate,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong sm:p-7';
+let wordIndex = 0;
+const headline = hero.title.map((sentence, line) => ({
+  style: lineStyles[line] ?? '',
+  words: sentence.split(' ').map((word) => ({ word, index: wordIndex++ })),
+}));
+
+/** Longest bar = 100%, so the chart reads as proportions rather than raw counts. */
+const maxCount = Math.max(...bodyParts.map((part) => part.count));
+
+/** The ticker is rendered twice back to back so a -50% translate loops seamlessly. */
+const ticker = [...bodyParts, ...bodyParts];
+
+const [catalogue, demo, log, record] = features;
 ---
 
 <Base jsonLd={jsonLd}>
@@ -53,205 +54,303 @@ const card =
 
   <main>
     <!-- ── Hero ─────────────────────────────────────────────────────────── -->
-    <section class="grain relative overflow-hidden">
-      <!-- Graph paper, straight from the app's iOS icon asset. -->
-      <div
-        class="grid-tex pointer-events-none absolute inset-0 opacity-[0.05]"
-        aria-hidden="true"
-      >
-      </div>
-      <div
-        class="pointer-events-none absolute -top-1/3 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full blur-[120px]"
-        style="background: radial-gradient(circle, rgba(255,255,255,.13), transparent 65%)"
-        aria-hidden="true"
-      >
-      </div>
+    <section class="relative overflow-hidden">
+      <div class="grid-tex pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
-      <div
-        class="relative z-10 mx-auto max-w-6xl px-5 pt-32 pb-16 sm:px-8 sm:pt-40"
-      >
-        <div class="mx-auto max-w-3xl text-center">
-          <a
-            href={site.downloadUrl}
-            target="_blank"
-            rel="noopener"
-            class="animate-rise inline-flex items-center gap-2 rounded-full border border-line bg-accent-soft py-1.5 pr-4 pl-1.5 text-xs font-medium"
-          >
-            <span
-              class="rounded-full bg-fg px-2 py-1 text-[0.625rem] font-semibold tracking-[0.08em] text-on-accent uppercase"
-            >
-              New
-            </span>
-            v{site.version} — direct APK, no store
-          </a>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 pt-24 pb-10 sm:px-8 sm:pt-28">
+        <a
+          href={site.downloadUrl}
+          class="mono animate-rise inline-flex items-center gap-2.5 rounded-full border border-line-strong py-1.5 pr-4 pl-1.5 text-[0.7rem] tracking-[0.08em] uppercase"
+        >
+          <span class="rounded-full bg-accent px-2.5 py-1 font-semibold text-on-accent">New</span>
+          v{site.version} · direct APK · no store
+        </a>
 
-          <!--
-            One animation per word, and the heading's text left plainly readable.
+        <!--
+          One animation per word. The spaces are real text nodes between the
+          spans (not inside them): `.word` is an inline-block, and a trailing space
+          inside one is trimmed, which would set the words solid.
+        -->
+        <h1 class="poster hero-type mt-6">
+          {
+            headline.map((line) => (
+              <span class:list={['block', line.style]}>
+                {line.words.map(({ word, index }) => (
+                  <>
+                    <span class="word" style={`--word-delay:${120 + index * 70}ms`}>
+                      {word}
+                    </span>{' '}
+                  </>
+                ))}
+              </span>
+            ))
+          }
+        </h1>
 
-            The words used to sit in `aria-hidden` spans behind an `aria-label`,
-            to stop a screen reader announcing the headline one word at a time.
-            That hid the page's most important string from anything reading the
-            markup as text, crawlers included, which is a poor trade for a
-            cosmetic gain. The spaces are already real text nodes between the
-            spans, so the heading reads as one sentence without the label.
+        <div class="mt-8 grid items-end gap-10 lg:block">
+          <div class="max-w-xl animate-rise [animation-delay:700ms]">
+            <p class="lede max-w-lg !text-[1.02rem]">{hero.lede}</p>
 
-            The spaces stay *outside* each span, as `global.css` notes: `.word` is
-            an inline-block, and a trailing space inside one is trimmed as
-            trailing whitespace, which would set the words solid against each
-            other.
-          -->
-          <h1 class="display mt-6">
-            {
-              headline.map(({ word, muted }, i) => (
-                <>
-                  <span
-                    class:list={['word', muted && 'text-muted']}
-                    style={`--word-delay:${80 + i * 45}ms`}
-                  >
-                    {word}
-                  </span>{' '}
-                </>
-              ))
-            }
-          </h1>
-
-          <p
-            class="lede mx-auto mt-6 max-w-2xl animate-rise [animation-delay:380ms]"
-          >
-            {hero.lede}
-          </p>
-
-          <div
-            class="mt-9 flex animate-rise flex-col items-center gap-5 [animation-delay:440ms] sm:flex-row sm:justify-center"
-          >
-            <DownloadBadge />
-            <a
-              href="#how"
-              class="inline-flex items-center gap-1.5 py-3 text-sm font-medium text-muted transition-colors hover:text-fg"
-            >
-              {hero.secondary}
-              <svg
-                viewBox="0 0 16 16"
-                class="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+            <div class="mt-6 flex flex-wrap items-center gap-x-8 gap-y-5">
+              <DownloadBadge />
+              <a
+                href="#how"
+                class="mono group inline-flex items-center gap-2 text-[0.75rem] tracking-[0.08em] text-muted uppercase transition-colors hover:text-accent"
               >
-                <path d="M8 3v10M4 9.5l4 4 4-4"></path>
-              </svg>
-            </a>
+                {hero.secondary}
+                <span class="transition-transform group-hover:translate-y-1">↓</span>
+              </a>
+            </div>
+
+            <p class="mono mt-5 text-[0.68rem] tracking-[0.08em] text-faint uppercase">
+              {hero.note}
+            </p>
           </div>
 
-          <p
-            class="mt-6 text-xs text-muted animate-rise [animation-delay:500ms]"
-          >
-            {hero.note}
-          </p>
+          <!-- A sample set, drawn as a receipt: the product's one idea in a card. -->
+          <div class="float relative mx-auto w-full max-w-[16rem] animate-rise [animation-delay:900ms] lg:absolute lg:top-32 lg:right-8 lg:mx-0 lg:max-w-[15rem] xl:right-12">
+            <div
+              class="mono relative rounded-2xl bg-fg p-5 pb-6 text-on-accent shadow-[0_40px_90px_-30px_rgba(176,92,255,0.35)]"
+            >
+              <div class="flex items-center justify-between text-[0.62rem] tracking-[0.16em] uppercase">
+                <span class="font-semibold">Set log</span>
+                <span class="opacity-50">Sample</span>
+              </div>
+
+              <p class="poster mt-4 text-[1.4rem] leading-none">Bench press</p>
+              <p class="poster mt-2 text-[3.4rem] leading-[0.82]">
+                100<span class="text-[0.4em] opacity-60"> kg</span> ×5
+              </p>
+
+              <div class="mt-4 flex gap-1.5" aria-hidden="true">
+                <span class="h-2.5 flex-1 rounded-full bg-on-accent"></span>
+                <span class="h-2.5 flex-1 rounded-full bg-on-accent"></span>
+                <span class="h-2.5 flex-1 rounded-full bg-on-accent"></span>
+                <span class="h-2.5 flex-1 rounded-full bg-on-accent"></span>
+                <span class="h-2.5 flex-1 rounded-full bg-on-accent"></span>
+              </div>
+
+              <div class="mt-4 border-t border-dashed border-on-accent/40 pt-3 text-[0.7rem] leading-6">
+                <p class="flex justify-between"><span class="opacity-60">Est. 1RM</span><span class="tnum font-semibold">116.7 kg</span></p>
+                <p class="flex justify-between"><span class="opacity-60">Volume</span><span class="tnum font-semibold">500 kg</span></p>
+                <p class="flex justify-between"><span class="opacity-60">Beats best by</span><span class="tnum font-semibold">+2.5 kg</span></p>
+              </div>
+
+              <div
+                class="stamp poster absolute -top-5 -right-5 rounded-lg border-[3px] border-on-accent bg-accent px-3.5 py-2 text-[1.55rem] leading-none text-on-accent"
+              >
+                New PR
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ── How it works ──────────────────────────────────────────────────────
-         The walkthrough and the step list are one section: a single row of four
-         cards, each a step of the loop paired with the screen it happens on.
-         Phones are portrait, so they go side by side at this size rather than
-         stacked — stacking made the section three screens tall with half of
-         every row's width left empty. -->
-    <section id="how" class="band-sunken scroll-mt-20 border-t border-line">
-      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <div class="max-w-2xl" data-reveal>
-          <p class="eyebrow">{loop.eyebrow}</p>
-          <h2 class="display-sm mt-3">{loop.title}</h2>
-          <p class="lede mt-4 text-[0.9375rem]">{loop.lede}</p>
-        </div>
-
-        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+    <!-- ── Ticker ───────────────────────────────────────────────────────────
+         Two crossing strips. The violet one carries the catalogue; the dark one
+         underneath runs the other way and says the quiet part. -->
+    <div class="relative overflow-hidden py-10" aria-hidden="true">
+      <div class="-rotate-[1.6deg] bg-accent py-4 text-on-accent">
+        <div class="marquee animate-marquee">
           {
-            loop.items.map((item, i) => (
-              <article
-                data-reveal
-                data-reveal-delay={i * 80}
-                class="flex flex-col items-center text-center"
-              >
-                <Phone screen={item.screen} size="sm" delay={i * 300} />
-
-                <div class="mt-5 max-w-[15rem]">
-                  <p
-                    class="tnum text-[0.6875rem] font-semibold tracking-[0.14em] text-faint"
-                    aria-hidden="true"
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </p>
-                  <h3 class="mt-1.5 text-base font-semibold tracking-[-0.02em]">
-                    {item.title}
-                  </h3>
-                  <p class="mt-1.5 text-sm leading-relaxed text-muted">
-                    {item.body}
-                  </p>
-                </div>
-              </article>
+            ticker.map((part) => (
+              <span class="poster flex shrink-0 items-center gap-6 pr-6 text-[1.7rem] sm:text-[2.4rem]">
+                {part.name}
+                <span class="mono text-[0.9rem] font-medium tracking-normal opacity-60">{part.count}</span>
+                <span class="text-[1.4rem]">✦</span>
+              </span>
             ))
           }
         </div>
       </div>
+      <div class="-mt-3 rotate-[1.2deg] border-y border-line-strong bg-bg py-3">
+        <div class="marquee animate-marquee-rev">
+          {
+            [...Array(8)].map(() => (
+              <span class="mono shrink-0 pr-10 text-[0.78rem] tracking-[0.2em] text-muted uppercase">
+                No account · No tracking · Works offline · Free · Open source ·
+              </span>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stats ────────────────────────────────────────────────────────── -->
+    <section class="border-b border-line">
+      <div class="mx-auto grid max-w-7xl grid-cols-2 lg:grid-cols-4">
+        {
+          stats.map((stat, i) => (
+            <div
+              data-reveal
+              data-reveal-delay={i * 90}
+              class="border-line px-5 py-8 sm:px-8 sm:py-10 [&:nth-child(odd)]:border-r [&:nth-child(-n+2)]:border-b lg:border-r lg:border-b-0 lg:last:border-r-0"
+            >
+              <p class="poster text-[clamp(2.8rem,6vw,5.2rem)] text-accent tnum">
+                <span data-count={stat.value}>{stat.value.toLocaleString('en-US')}</span>
+              </p>
+              <p class="mono mt-3 text-[0.72rem] tracking-[0.1em] text-muted uppercase">
+                {stat.label}
+              </p>
+            </div>
+          ))
+        }
+      </div>
     </section>
 
-    <!-- ── Features ─────────────────────────────────────────────────────── -->
-    <section id="features" class="scroll-mt-20 border-t border-line">
-      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <div class="max-w-2xl" data-reveal>
+    <!-- ── Features: bento ──────────────────────────────────────────────── -->
+    <section id="features" class="scroll-mt-20">
+      <div class="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+        <div data-reveal class="max-w-4xl">
           <p class="eyebrow">{featuresIntro.eyebrow}</p>
-          <h2 class="display-sm mt-3">{featuresIntro.title}</h2>
-          <p class="lede mt-4 text-[0.9375rem]">{featuresIntro.lede}</p>
+          <h2 class="poster section-type mt-5">
+            The parts other apps <span class="aside text-accent normal-case">charge</span> for
+          </h2>
+          <p class="lede mt-6 max-w-xl">{featuresIntro.lede}</p>
         </div>
 
-        <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-10 grid gap-4 lg:grid-cols-6">
+          <!-- Catalogue + proportional bars, straight from `bodyParts`. -->
+          <article data-reveal class="tile flex flex-col p-7 sm:p-9 lg:col-span-4 lg:row-span-2">
+            <p class="mono text-[0.7rem] tracking-[0.14em] text-accent uppercase">01 / Catalogue</p>
+            <h3 class="poster mt-4 text-[clamp(1.8rem,3vw,2.6rem)]">{catalogue.title}</h3>
+            <p class="mt-4 max-w-md text-[0.95rem] leading-relaxed text-muted">{catalogue.body}</p>
+
+            <ul class="mono mt-10 flex flex-1 flex-col justify-between gap-3.5">
+              {
+                bodyParts.map((part, i) => (
+                  <li class="flex items-center gap-4 text-[0.72rem] tracking-[0.08em] uppercase">
+                    <span class="w-20 shrink-0 text-muted">{part.name}</span>
+                    <span class="h-4 flex-1 overflow-hidden rounded-full bg-line">
+                      <span
+                        class="bar block h-full rounded-full bg-accent"
+                        style={`--w:${((part.count / maxCount) * 100).toFixed(1)}%;--bar-delay:${i * 90}ms`}
+                      />
+                    </span>
+                    <span class="tnum w-9 text-right text-fg">{part.count}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </article>
+
+          <!-- Form demo: a looping scrubber. -->
+          <article data-reveal data-reveal-delay="90" class="tile flex flex-col p-7 sm:p-8 lg:col-span-2">
+            <p class="mono text-[0.7rem] tracking-[0.14em] text-accent uppercase">02 / Form</p>
+            <div class="relative mt-5 grid aspect-[16/10] place-items-center overflow-hidden rounded-2xl border border-line-strong bg-bg" aria-hidden="true">
+              <span class="grid h-14 w-14 place-items-center rounded-full bg-accent text-on-accent">
+                <svg viewBox="0 0 24 24" class="ml-0.5 h-6 w-6" fill="currentColor"><path d="M8 5.5v13l11-6.5z"></path></svg>
+              </span>
+              <span class="absolute inset-x-4 bottom-4 h-1 overflow-hidden rounded-full bg-line-strong">
+                <span class="scrub block h-full bg-accent"></span>
+              </span>
+            </div>
+            <h3 class="poster mt-6 text-[1.9rem]">{demo.title}</h3>
+            <p class="mt-3 text-[0.9rem] leading-relaxed text-muted">{demo.body}</p>
+          </article>
+
+          <!-- Four seconds: a ring that fills on a loop. -->
+          <article data-reveal data-reveal-delay="180" class="tile flex flex-col p-7 sm:p-8 lg:col-span-2">
+            <p class="mono text-[0.7rem] tracking-[0.14em] text-accent uppercase">03 / Speed</p>
+            <div class="relative mx-auto mt-5 grid h-36 w-36 place-items-center" aria-hidden="true">
+              <svg viewBox="0 0 100 100" class="absolute inset-0 -rotate-90">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="var(--line-strong)" stroke-width="5"></circle>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="var(--accent)"
+                  stroke-width="5"
+                  stroke-linecap="round"
+                  pathLength="1"
+                  class="ring"
+                ></circle>
+              </svg>
+              <span class="poster text-[3.6rem] leading-none">4<span class="aside text-accent text-[0.7em] normal-case">s</span></span>
+            </div>
+            <h3 class="poster mt-6 text-[1.9rem]">{log.title}</h3>
+            <p class="mt-3 text-[0.9rem] leading-relaxed text-muted">{log.body}</p>
+          </article>
+
+          <!-- Records: the one loud tile. -->
+          <article data-reveal class="tile tile-accent grid gap-8 p-7 sm:p-10 lg:col-span-6 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+            <div>
+              <p class="mono text-[0.7rem] tracking-[0.14em] uppercase opacity-70">04 / Records</p>
+              <h3 class="poster mt-4 text-[clamp(2.2rem,4vw,3.4rem)]">{record.title}</h3>
+              <p class="mt-5 max-w-md text-[1rem] leading-relaxed opacity-80">{record.body}</p>
+            </div>
+
+            <div class="relative" aria-hidden="true">
+              <svg viewBox="0 0 400 160" class="w-full overflow-visible" fill="none">
+                <path d="M0 150 H400" stroke="currentColor" stroke-opacity="0.18"></path>
+                <path d="M0 105 H400" stroke="currentColor" stroke-opacity="0.12" stroke-dasharray="3 6"></path>
+                <path d="M0 60 H400" stroke="currentColor" stroke-opacity="0.12" stroke-dasharray="3 6"></path>
+                <path
+                  pathLength="1"
+                  class="draw"
+                  d="M4 138 L52 126 L100 131 L148 108 L196 114 L244 86 L292 92 L340 52 L388 22"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+                <circle cx="388" cy="22" r="8" fill="currentColor"></circle>
+                <circle cx="388" cy="22" r="18" stroke="currentColor" stroke-opacity="0.35" stroke-width="2"></circle>
+              </svg>
+              <span class="poster absolute top-0 left-0 rounded-md bg-on-accent px-2.5 py-1.5 text-[1.1rem] leading-none text-accent">
+                New PR
+              </span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How it works: an oversized ledger ────────────────────────────── -->
+    <section id="how" class="band-sunken scroll-mt-20 border-y border-line">
+      <div class="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+        <div data-reveal class="max-w-4xl">
+          <p class="eyebrow">{loop.eyebrow}</p>
+          <h2 class="poster section-type mt-5">
+            The loop, <span class="aside text-accent normal-case">start to finish</span>
+          </h2>
+          <p class="lede mt-6 max-w-xl">{loop.lede}</p>
+        </div>
+
+        <ol class="mt-10 border-b border-line">
           {
-            features.map((item, i) => (
-              <li data-reveal data-reveal-delay={i * 90}>
-                <div class={card}>
-                  <div class="relative z-10">
-                    <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-line">
-                      <Icon name={item.icon} class="h-[1.15rem] w-[1.15rem]" />
-                    </div>
-                    {/* h3, not h2: the section heading above owns the h2 now. */}
-                    <h3 class="text-base font-semibold tracking-[-0.02em]">
-                      {item.title}
-                    </h3>
-                    <p class="mt-1.5 text-sm leading-relaxed text-muted">
-                      {item.body}
-                    </p>
-                  </div>
+            loop.items.map((item, i) => (
+              <li data-reveal data-reveal-delay={i * 60}>
+                <div class="group grid items-baseline gap-x-10 gap-y-3 border-t border-line px-2 py-6 transition-colors duration-500 hover:bg-accent hover:text-on-accent sm:px-6 md:grid-cols-[minmax(6rem,8rem)_1fr_1fr] md:py-7">
+                  <span class="poster outline-type tnum text-[clamp(3rem,6vw,5rem)] transition-colors duration-500 group-hover:[-webkit-text-stroke-color:var(--on-accent)]">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h3 class="poster text-[clamp(1.8rem,3.4vw,3rem)] leading-[0.9]">{item.title}</h3>
+                  <p class="max-w-md text-[0.98rem] leading-relaxed text-muted transition-colors duration-500 group-hover:text-on-accent/75">
+                    {item.body}
+                  </p>
                 </div>
               </li>
             ))
           }
-        </ul>
+        </ol>
       </div>
     </section>
 
     <!-- ── Closing CTA ──────────────────────────────────────────────────── -->
-    <section id="get" class="scroll-mt-20 border-t border-line">
-      <div class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
-        <div data-reveal>
-          <div
-            class="tilt group relative flex flex-col items-center gap-8 overflow-hidden rounded-panel border border-line bg-surface p-8 transition-[transform,translate,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong sm:p-12 lg:flex-row lg:justify-between lg:text-left"
-          >
-            <div class="relative z-10 max-w-xl">
-              <h2 class="display-sm">{closing.title}</h2>
-              <p class="lede mt-4 text-[0.9375rem]">{closing.lede}</p>
-            </div>
+    <section id="get" class="scroll-mt-20">
+      <div class="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+        <div data-reveal class="tile tile-accent p-8 sm:p-12 lg:p-14">
+          <h2 class="poster text-[clamp(2.8rem,7vw,6.5rem)]">
+            Start logging <span class="aside normal-case">in the next rep</span>
+          </h2>
 
-            <div
-              class="relative z-10 flex shrink-0 flex-col items-center gap-3"
-            >
-              <DownloadBadge />
-              <p
-                class="max-w-56 text-center text-[0.6875rem] leading-relaxed text-muted"
-              >
+          <div class="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <p class="max-w-md text-[1.05rem] leading-relaxed opacity-80">{closing.lede}</p>
+            <div class="flex flex-col items-start gap-4">
+              <DownloadBadge tone="ink" />
+              <p class="mono max-w-64 text-[0.66rem] leading-relaxed tracking-[0.06em] uppercase opacity-65">
                 {closing.install}
               </p>
             </div>

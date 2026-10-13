@@ -2,52 +2,37 @@
 import { site } from '../data/content';
 ---
 
-<footer class="grain relative overflow-hidden border-t border-line">
-  <div class="relative z-10 mx-auto max-w-6xl px-5 py-14 text-center sm:px-8">
-    <div class="flex flex-col items-center gap-5">
-      <p class="text-sm text-muted">
-        {site.tagline}. Free, with no account and no tracking.
-      </p>
+<footer class="relative overflow-hidden border-t border-line">
+  <div class="mx-auto max-w-6xl px-5 pt-14 sm:px-8">
+    <div class="mono flex flex-col gap-6 text-[0.72rem] tracking-[0.08em] text-muted uppercase sm:flex-row sm:items-center sm:justify-between">
+      <p>{site.tagline}</p>
+      <div class="flex gap-6">
+        <a href={site.repoUrl} target="_blank" rel="noopener" class="transition-colors hover:text-accent">
+          Source ↗
+        </a>
+        <a href={site.downloadUrl} class="transition-colors hover:text-accent">Download ↓</a>
+      </div>
+    </div>
 
+    <p class="mono mt-8 max-w-2xl text-[0.68rem] leading-relaxed text-faint">
+      Exercise demonstrations from{' '}
       <a
-        href={site.repoUrl}
+        href={site.datasetUrl}
         target="_blank"
         rel="noopener"
-        class="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-fg"
+        class="underline underline-offset-2 hover:text-fg"
       >
-        <svg
-          viewBox="0 0 16 16"
-          class="h-3.5 w-3.5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path
-            d="M8 .8a7.2 7.2 0 0 0-2.3 14c.4.1.5-.1.5-.3v-1.2c-2 .4-2.5-.5-2.7-1-.1-.2-.5-1-.9-1.2-.3-.2-.7-.5 0-.6.6 0 1 .6 1.2.8.7 1.2 1.8.9 2.2.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-3.9 0-.9.3-1.6.8-2.1-.1-.2-.3-1 .1-2 0 0 .7-.2 2.2.8a7.4 7.4 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1 .2 1.8.1 2 .5.5.8 1.2.8 2.1 0 3-1.8 3.7-3.6 3.9.3.2.5.7.5 1.4v2.1c0 .2.1.5.5.3A7.2 7.2 0 0 0 8 .8Z"
-          ></path>
-        </svg>
-        Made by faisalsaifii
-      </a>
-    </div>
-
-    <div
-      class="mx-auto mt-10 max-w-3xl space-y-2 border-t border-line pt-7 text-[0.6875rem] leading-relaxed text-muted"
-    >
-      <p>
-        Exercise demonstrations from{' '}
-        <a
-          href={site.datasetUrl}
-          target="_blank"
-          rel="noopener"
-          class="underline underline-offset-2 hover:text-fg"
-        >
-          ExerciseGymGifsDB</a
-        >, pinned to <span class="tnum">v1.1.0</span>. GIFs © their respective
-        authors. Released under the MIT licence.
-      </p>
-    </div>
+        ExerciseGymGifsDB</a
+      >, pinned to <span class="tnum">v1.1.0</span>. GIFs © their respective authors.
+      Released under the MIT licence. Made by {site.author}.
+    </p>
   </div>
+
+  <!-- Wordmark, cropped by the page edge on purpose. -->
+  <p
+    aria-hidden="true"
+    class="poster outline-type pointer-events-none mt-6 translate-y-[18%] text-center text-[clamp(4rem,18vw,15rem)] leading-[0.8] select-none"
+  >
+    Log Lift
+  </p>
 </footer>

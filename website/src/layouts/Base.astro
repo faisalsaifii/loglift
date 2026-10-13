@@ -49,7 +49,13 @@ const jsonLdPayload = jsonLd
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/app-icon.png" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0c0715" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Anton&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
 
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -86,7 +92,7 @@ const jsonLdPayload = jsonLd
       document.documentElement.classList.add('js');
     </script>
   </head>
-  <body class="min-h-screen bg-bg text-fg antialiased">
+  <body class="grain min-h-screen bg-bg text-fg antialiased">
     <slot />
 
     <script>
