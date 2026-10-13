@@ -26,6 +26,14 @@ export type PrEntry = {
   date: string;
 };
 
+/** A single body weight reading. Kilograms internally, like lifts. */
+export type BodyWeightEntry = {
+  id: string;
+  weightKg: number;
+  /** ISO timestamp of the reading. */
+  date: string;
+};
+
 export type ExerciseLog = {
   /** Exercise id from the catalogue. */
   id: string;
@@ -41,11 +49,13 @@ export type ExerciseLog = {
 export type LibrarySnapshot = {
   unit: WeightUnit;
   logs: Record<string, ExerciseLog>;
+  /** Body weight readings, oldest first. */
+  bodyWeights: BodyWeightEntry[];
 };
 
 type PersistedState = LibrarySnapshot;
 
-const EMPTY_STATE: LibrarySnapshot = { unit: 'kg', logs: {} };
+const EMPTY_STATE: LibrarySnapshot = { unit: 'kg', logs: {}, bodyWeights: [] };
 
 type BestPr = {
   weightKg: number;
@@ -67,6 +77,11 @@ type LibraryContextValue = {
   getPrs: (exerciseId: string) => PrEntry[];
   addPr: (exerciseId: string, weightKg: number, reps: number) => void;
   removePr: (exerciseId: string, prId: string) => void;
+  /** Body weight readings, oldest first. */
+  bodyWeights: BodyWeightEntry[];
+  /** Logs a reading for today, replacing any earlier reading from the same day. */
+  addBodyWeight: (weightKg: number) => void;
+  removeBodyWeight: (id: string) => void;
   /** Heaviest logged set for an exercise, with the reps it was done for. */
   bestPr: (exerciseId: string) => BestPr | undefined;
   /** Per-body-part counts of library exercises and total logged PRs. */
@@ -88,6 +103,10 @@ const LibraryContext = createContext<LibraryContextValue | undefined>(undefined)
 
 function createId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function sortBodyWeights(entries: BodyWeightEntry[]): BodyWeightEntry[] {
+  return [...entries].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function sortPrs(prs: PrEntry[]): PrEntry[] {
@@ -151,9 +170,28 @@ export function sanitise(value: unknown): LibrarySnapshot {
     }
   }
 
+  const bodyWeights = Array.isArray(candidate.bodyWeights)
+    ? candidate.bodyWeights
+        .filter(
+          (entry): entry is BodyWeightEntry =>
+            !!entry &&
+            typeof entry.weightKg === 'number' &&
+            Number.isFinite(entry.weightKg) &&
+            entry.weightKg > 0 &&
+            typeof entry.date === 'string' &&
+            !Number.isNaN(new Date(entry.date).getTime())
+        )
+        .map((entry) => ({
+          id: typeof entry.id === 'string' ? entry.id : createId(),
+          weightKg: entry.weightKg,
+          date: entry.date,
+        }))
+    : [];
+
   return {
     unit: candidate.unit === 'lb' ? 'lb' : 'kg',
     logs,
+    bodyWeights: sortBodyWeights(bodyWeights),
   };
 }
 
@@ -278,13 +316,51 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     [mutate]
   );
 
+  const addBodyWeight = useCallback(
+    (weightKg: number) => {
+      if (!(weightKg > 0)) {
+        return;
+      }
+      mutate((current) => {
+        const now = new Date();
+        const today = now.toDateString();
+        const entry: BodyWeightEntry = {
+          id: createId(),
+          weightKg,
+          date: now.toISOString(),
+        };
+        const kept = current.bodyWeights.filter(
+          (existing) => new Date(existing.date).toDateString() !== today
+        );
+        return { ...current, bodyWeights: sortBodyWeights([...kept, entry]) };
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    },
+    [mutate]
+  );
+
+  const removeBodyWeight = useCallback(
+    (id: string) => {
+      mutate((current) => ({
+        ...current,
+        bodyWeights: current.bodyWeights.filter((entry) => entry.id !== id),
+      }));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    },
+    [mutate]
+  );
+
   const clearAll = useCallback(() => {
-    mutate(() => ({ unit: 'kg', logs: {} }));
+    mutate(() => ({ unit: 'kg', logs: {}, bodyWeights: [] }));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   }, [mutate]);
 
   const getSnapshot = useCallback(
-    () => ({ unit: stateRef.current.unit, logs: stateRef.current.logs }),
+    () => ({
+      unit: stateRef.current.unit,
+      logs: stateRef.current.logs,
+      bodyWeights: stateRef.current.bodyWeights,
+    }),
     []
   );
 
@@ -342,6 +418,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       getPrs: (id) => logs[id]?.prs ?? [],
       addPr,
       removePr,
+      bodyWeights: state.bodyWeights,
+      addBodyWeight,
+      removeBodyWeight,
       bestPr: (id) => {
         const best = logs[id]?.prs[0];
         if (!best) {
@@ -359,7 +438,19 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       replaceAll,
       clearAll,
     };
-  }, [state, isReady, setUnit, toggleAdded, addPr, removePr, getSnapshot, replaceAll, clearAll]);
+  }, [
+    state,
+    isReady,
+    setUnit,
+    toggleAdded,
+    addPr,
+    removePr,
+    addBodyWeight,
+    removeBodyWeight,
+    getSnapshot,
+    replaceAll,
+    clearAll,
+  ]);
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }

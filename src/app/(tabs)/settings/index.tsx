@@ -29,7 +29,7 @@ const COPY_TO_CLIPBOARD =
   "Backup copied to your clipboard. Paste it somewhere safe, then use Import data on the other device.";
 
 const NOTHING_TO_EXPORT =
-  "There is nothing to export yet — add an exercise to your library first.";
+  "There is nothing to export yet — log a set or a body weight first.";
 
 const EXPORT_FAILED =
   "Log Lift could not export your data. Check that the device has free space, then try again.";
@@ -41,14 +41,14 @@ type TransferStatus = { tone: "success" | "danger"; message: string } | undefine
 
 export default function SettingsScreen() {
   const colors = useTheme();
-  const { unit, setUnit, clearAll, stats, isReady, getSnapshot, replaceAll } =
+  const { unit, setUnit, clearAll, stats, isReady, getSnapshot, replaceAll, bodyWeights } =
     useLibrary();
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<TransferStatus>(undefined);
 
   const confirmClear = () => {
     const message =
-      "This removes every exercise from your library and all logged sets. It cannot be undone.";
+      "This removes every exercise from your library, all logged sets and body weight readings. It cannot be undone.";
     if (Platform.OS === "web") {
       clearAll();
       return;
@@ -101,7 +101,10 @@ export default function SettingsScreen() {
               0,
             ),
             "set",
-          )} logged`,
+          )} logged · ${pluralize(
+            result.snapshot.bodyWeights.length,
+            "body weight reading",
+          )}`,
         });
       } else if (result.status === "failed") {
         setStatus({ tone: "danger", message: IMPORT_FAILED });
@@ -196,7 +199,8 @@ export default function SettingsScreen() {
         <Txt variant="heading">Your data</Txt>
         <Txt variant="body" tone="secondary">
           {pluralize(stats.totalExercises, "exercise")} tracked ·{" "}
-          {pluralize(stats.totalPrs, "set")} logged
+          {pluralize(stats.totalPrs, "set")} logged ·{" "}
+          {pluralize(bodyWeights.length, "body weight reading")}
         </Txt>
         <View style={styles.dangerRow}>
           <Button
