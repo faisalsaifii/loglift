@@ -9,6 +9,7 @@ import { ExerciseRow } from '@/components/exercise-row';
 import { Icon } from '@/components/icon';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
+import { Segmented } from '@/components/controls';
 import { Button, Card, Chip, EmptyState } from '@/components/ui';
 import { Radii, Spacing } from '@/constants/theme';
 import {
@@ -70,6 +71,8 @@ function confirmDestructive(title: string, message: string): Promise<boolean> {
   });
 }
 
+type TabKey = 'guide' | 'history' | 'similar';
+
 /**
  * Everything the records card shows, derived once per history change. `prs`
  * arrives heaviest-first, which is the wrong order for a timeline, so this
@@ -105,6 +108,7 @@ export default function ExerciseScreen() {
   const colors = useTheme();
   const [gifPaused, setGifPaused] = useState(false);
   const [showAllSets, setShowAllSets] = useState(false);
+  const [tab, setTab] = useState<TabKey>('guide');
 
   const exercise = getExercise(id);
   const { isAdded, toggleAdded, prs, best } = useExerciseLog(exercise?.id);
@@ -188,6 +192,12 @@ export default function ExerciseScreen() {
     }
   };
 
+  const tabOptions = [
+    { value: 'guide', label: 'Guide' },
+    { value: 'history', label: records.count > 0 ? `History (${records.count})` : 'History' },
+    { value: 'similar', label: 'Similar' },
+  ] as const;
+
   return (
     <>
       <ToolbarActions
@@ -198,29 +208,6 @@ export default function ExerciseScreen() {
 
       <Screen contentStyle={styles.content}>
         <Stack.Screen options={options} />
-
-        {/* Action buttons */}
-        <View style={styles.actions}>
-          <Button
-            label={isAdded ? 'In your library' : 'Add to library'}
-            icon={isAdded ? 'check' : 'plus'}
-            variant={isAdded ? 'secondary' : 'primary'}
-            accentColor={accent}
-            onPress={toggleLibrary}
-            accessibilityHint={
-              isAdded ? 'Removes this exercise and everything logged for it' : undefined
-            }
-            style={styles.actionButton}
-          />
-          <Button
-            label="Log a set"
-            icon="trophy"
-            variant={isAdded ? 'primary' : 'secondary'}
-            accentColor={accent}
-            onPress={openLog}
-            style={styles.actionButton}
-          />
-        </View>
 
         {/*
           Full-bleed media. The negative margin cancels `Screen`'s horizontal
@@ -274,97 +261,122 @@ export default function ExerciseScreen() {
           <Chip label={getCategoryLabel(exercise.category)} />
         </View>
 
-        <Card>
-          <View style={styles.cardHeader}>
-            <Icon name="target" size={17} color={colors.textSecondary} />
-            <Txt variant="heading">Muscles worked</Txt>
-          </View>
-          <View style={styles.cardBody}>
-            <View style={styles.muscleBlock}>
-              <Txt variant="label" tone="secondary" eyebrow>
-                Primary
-              </Txt>
-              <View style={styles.chipRow}>
-                <Chip
-                  label={getMuscleLabel(exercise.target)}
-                  color={accent}
-                  filled
-                />
-              </View>
-            </View>
-            {exercise.secondary.length > 0 ? (
-              <View style={styles.muscleBlock}>
-                <Txt variant="label" tone="secondary" eyebrow>
-                  Also works
-                </Txt>
-                <View style={styles.chipRow}>
-                  {exercise.secondary.map((muscle) => (
-                    <Chip key={muscle} label={getMuscleLabel(muscle)} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-          </View>
-        </Card>
+        <View style={styles.actions}>
+          <Button
+            label={isAdded ? 'In library' : 'Add to library'}
+            icon={isAdded ? 'check' : 'plus'}
+            variant={isAdded ? 'secondary' : 'primary'}
+            accentColor={accent}
+            onPress={toggleLibrary}
+            accessibilityHint={
+              isAdded ? 'Removes this exercise and everything logged for it' : undefined
+            }
+            style={styles.actionButton}
+          />
+          <Button
+            label="Log a set"
+            icon="trophy"
+            variant={isAdded ? 'primary' : 'secondary'}
+            accentColor={accent}
+            onPress={openLog}
+            style={styles.actionButton}
+          />
+        </View>
 
-        <Card>
-          <View style={styles.cardHeader}>
-            <Icon name="sparkle" size={17} color={colors.textSecondary} />
-            <Txt variant="heading">Form cues</Txt>
-            {!getFormCues(exercise.name) ? (
-              <Txt variant="caption" tone="secondary" style={styles.headerTag}>
-                from the source
-              </Txt>
-            ) : null}
-          </View>
-          <View style={styles.cardBody}>
-            <View style={styles.cueList}>
-              {cues.map((cue, index) => (
-                <View key={cue} style={styles.cue}>
-                  <View
-                    style={[
-                      styles.cueIndex,
-                      { backgroundColor: colors.surfaceSunken },
-                    ]}
-                  >
-                    <Txt
-                      variant="caption"
-                      tone="secondary"
-                      style={styles.cueIndexLabel}
+        <Segmented
+          options={tabOptions}
+          value={tab}
+          onChange={setTab}
+          style={styles.tabs}
+        />
+
+        {tab === 'guide' ? (
+          <>
+            <Card>
+              <View style={styles.muscles}>
+                <View style={styles.muscleBlock}>
+                  <Txt variant="label" tone="secondary" eyebrow>
+                    Primary
+                  </Txt>
+                  <View style={styles.chipRow}>
+                    <Chip
+                      label={getMuscleLabel(exercise.target)}
+                      color={accent}
+                      filled
+                    />
+                  </View>
+                </View>
+                {exercise.secondary.length > 0 ? (
+                  <View style={styles.muscleBlock}>
+                    <Txt variant="label" tone="secondary" eyebrow>
+                      Also works
+                    </Txt>
+                    <View style={styles.chipRow}>
+                      {exercise.secondary.map((muscle) => (
+                        <Chip key={muscle} label={getMuscleLabel(muscle)} />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            </Card>
+
+            <Card padded={false}>
+              <View style={styles.cardHeader}>
+                <Icon name="sparkle" size={17} color={colors.textSecondary} />
+                <Txt variant="heading">Form cues</Txt>
+                {!getFormCues(exercise.name) ? (
+                  <Txt variant="caption" tone="secondary" style={styles.headerTag}>
+                    from the source
+                  </Txt>
+                ) : null}
+              </View>
+              <View style={styles.cueList}>
+                {cues.map((cue, index) => (
+                  <View key={cue} style={styles.cue}>
+                    <View
+                      style={[
+                        styles.cueIndex,
+                        { backgroundColor: colors.surfaceSunken },
+                      ]}
                     >
-                      {index + 1}
+                      <Txt
+                        variant="caption"
+                        tone="secondary"
+                        style={styles.cueIndexLabel}
+                      >
+                        {index + 1}
+                      </Txt>
+                    </View>
+                    <Txt variant="body" tone="secondary" style={styles.cueText}>
+                      {cue}
                     </Txt>
                   </View>
-                  <Txt variant="body" tone="secondary" style={styles.cueText}>
-                    {cue}
-                  </Txt>
-                </View>
-              ))}
-            </View>
-          </View>
-        </Card>
+                ))}
+              </View>
+            </Card>
+          </>
+        ) : null}
 
-        <RecordsCard
-          best={best}
-          records={records}
-          unit={unit}
-          expanded={showAllSets}
-          onToggleExpanded={() => setShowAllSets((shown) => !shown)}
-          onRemoveSet={confirmRemoveSet}
-          onLogSet={openLog}
-        />
+        {tab === 'history' ? (
+          <RecordsCard
+            best={best}
+            records={records}
+            unit={unit}
+            expanded={showAllSets}
+            onToggleExpanded={() => setShowAllSets((shown) => !shown)}
+            onRemoveSet={confirmRemoveSet}
+            onLogSet={openLog}
+          />
+        ) : null}
 
         {/*
           A detail page is a dead end without this: the catalogue has 1,292
           movements, and most people arrive here from a search for one variation
           and want the next one.
         */}
-        {similar.length > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Icon name="library" size={17} color={colors.textSecondary} />
-              <Txt variant="heading">More like this</Txt>
-            </View>
+        {tab === 'similar' ? (
+          similar.length > 0 ? (
             <View style={styles.similarList}>
               {similar.map((other) => (
                 <ExerciseRow
@@ -380,7 +392,13 @@ export default function ExerciseScreen() {
                 />
               ))}
             </View>
-          </View>
+          ) : (
+            <Card>
+              <Txt variant="body" tone="secondary">
+                No similar exercises found.
+              </Txt>
+            </Card>
+          )
         ) : null}
       </Screen>
     </>
@@ -463,11 +481,6 @@ function RecordsCard({
 
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Icon name="trophy" size={17} color={colors.textSecondary} />
-        <Txt variant="heading">Your records</Txt>
-      </View>
-
       <Card padded={false}>
         {best ? (
           <View style={styles.bestBlock}>
@@ -675,9 +688,11 @@ const styles = StyleSheet.create({
   headerTag: {
     marginLeft: 'auto',
   },
-  cardBody: {
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.four,
+  tabs: {
+    marginTop: Spacing.one,
+  },
+  muscles: {
+    gap: Spacing.three,
   },
   muscleBlock: {
     gap: Spacing.two,
@@ -689,6 +704,8 @@ const styles = StyleSheet.create({
   },
   cueList: {
     gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.four,
   },
   cue: {
     flexDirection: 'row',
