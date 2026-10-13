@@ -3,76 +3,70 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 /**
- * A deliberately neutral, grayscale palette. Values are lifted from the iOS
- * system greys (`label`, `secondaryLabel`, `separator`, `systemGroupedBackground`)
- * so the app sits next to native surfaces instead of fighting them. The only
- * chromatic colour left is `danger`, because destructive actions stay red on
- * every native platform.
+ * An indigo / violet palette: soft lavender-tinted surfaces, a vivid indigo
+ * accent and a rich deep-purple dark mode. `danger` stays red because
+ * destructive actions should read as such on every platform.
  */
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#FFFFFF',
+    text: '#1E1B3A',
+    background: '#F5F3FF',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#E9E9EA',
-    textSecondary: '#6C6C70',
-    textTertiary: '#A1A1A6',
+    backgroundSelected: '#E4DFFB',
+    textSecondary: '#5F5B85',
+    textTertiary: '#9C98BD',
     surface: '#FFFFFF',
-    surfaceSunken: '#F2F2F7',
-    surfaceHighlight: '#F9F9F9',
-    border: '#E5E5EA',
-    borderStrong: '#C6C6CB',
-    /** Native tint colour: pure black in light mode, pure white in dark. */
-    accent: '#000000',
-    accentSoft: 'rgba(0, 0, 0, 0.05)',
+    surfaceSunken: '#ECE8FD',
+    surfaceHighlight: '#F7F5FF',
+    border: '#E2DDF7',
+    borderStrong: '#C9C2EE',
+    accent: '#6D4AFF',
+    accentSoft: 'rgba(109, 74, 255, 0.10)',
     onAccent: '#FFFFFF',
-    danger: '#FF3B30',
-    dangerSoft: 'rgba(255, 59, 48, 0.10)',
-    shadow: '#000000',
-    overlay: 'rgba(0, 0, 0, 0.4)',
-    scrim: 'rgba(255, 255, 255, 0.94)',
+    danger: '#F43F5E',
+    dangerSoft: 'rgba(244, 63, 94, 0.10)',
+    shadow: '#4C3BA8',
+    overlay: 'rgba(30, 27, 58, 0.45)',
+    scrim: 'rgba(245, 243, 255, 0.94)',
   },
   dark: {
-    text: '#FFFFFF',
-    background: '#000000',
-    backgroundElement: '#1C1C1E',
-    backgroundSelected: '#2C2C2E',
-    textSecondary: '#98989F',
-    textTertiary: '#6B6B72',
-    surface: '#1C1C1E',
-    surfaceSunken: '#0A0A0B',
-    surfaceHighlight: '#2C2C2E',
-    border: '#38383A',
-    borderStrong: '#48484A',
-    accent: '#FFFFFF',
-    accentSoft: 'rgba(255, 255, 255, 0.10)',
-    onAccent: '#000000',
-    danger: '#FF453A',
-    dangerSoft: 'rgba(255, 69, 58, 0.15)',
+    text: '#F1EFFF',
+    background: '#0F0D1F',
+    backgroundElement: '#1A1733',
+    backgroundSelected: '#2A2650',
+    textSecondary: '#A9A5CF',
+    textTertiary: '#6F6B99',
+    surface: '#1A1733',
+    surfaceSunken: '#0A0817',
+    surfaceHighlight: '#232044',
+    border: '#2E2A55',
+    borderStrong: '#443F7A',
+    accent: '#A78BFA',
+    accentSoft: 'rgba(167, 139, 250, 0.16)',
+    onAccent: '#14102B',
+    danger: '#FB7185',
+    dangerSoft: 'rgba(251, 113, 133, 0.16)',
     shadow: '#000000',
-    overlay: 'rgba(0, 0, 0, 0.6)',
-    scrim: 'rgba(0, 0, 0, 0.94)',
+    overlay: 'rgba(5, 3, 15, 0.65)',
+    scrim: 'rgba(15, 13, 31, 0.94)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /**
- * Body parts no longer carry hue — the UI is grayscale. The keys are retained
- * because they define `MuscleGroupId` and therefore the catalogue's shape, but
- * every entry resolves to the same neutral so no screen can reintroduce colour
- * by accident.
+ * Body parts share the theme accent. Keys are retained because they define
+ * MuscleGroupId; give entries distinct values here to reintroduce per-muscle hue.
  */
 export const MusclePalette = {
-  chest: { light: '#000000', dark: '#FFFFFF' },
-  back: { light: '#000000', dark: '#FFFFFF' },
-  shoulders: { light: '#000000', dark: '#FFFFFF' },
-  biceps: { light: '#000000', dark: '#FFFFFF' },
-  triceps: { light: '#000000', dark: '#FFFFFF' },
-  legs: { light: '#000000', dark: '#FFFFFF' },
-  core: { light: '#000000', dark: '#FFFFFF' },
+  chest: { light: '#6D4AFF', dark: '#A78BFA' },
+  back: { light: '#6D4AFF', dark: '#A78BFA' },
+  shoulders: { light: '#6D4AFF', dark: '#A78BFA' },
+  biceps: { light: '#6D4AFF', dark: '#A78BFA' },
+  triceps: { light: '#6D4AFF', dark: '#A78BFA' },
+  legs: { light: '#6D4AFF', dark: '#A78BFA' },
+  core: { light: '#6D4AFF', dark: '#A78BFA' },
 } as const;
-
 /**
  * `sans` is the platform UI face on every target. `display` is the same face —
  * native titles are not rounded, and using SF Rounded for headings was the main
