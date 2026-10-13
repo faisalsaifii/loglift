@@ -251,9 +251,12 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
 
         <Card>
           <View style={styles.cardHeader}>
-            <Txt variant="subheading" tone="secondary">
-              Weight
-            </Txt>
+            <View style={styles.labelRow}>
+              <Icon name="scale" size={18} color={colors.textSecondary} />
+              <Txt variant="subheading" tone="secondary">
+                Weight
+              </Txt>
+            </View>
             <UnitSelector
               value={unit}
               onChange={setUnit}
@@ -307,9 +310,12 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
         </Card>
 
         <Card>
-          <Txt variant="subheading" tone="secondary">
-            Reps
-          </Txt>
+          <View style={styles.labelRow}>
+            <Icon name="swap" size={18} color={colors.textSecondary} />
+            <Txt variant="subheading" tone="secondary">
+              Reps
+            </Txt>
+          </View>
           <View style={styles.inputRow}>
             <StepButton
               label="−"
@@ -390,9 +396,12 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
           onPress={save}
           style={styles.saveButton}
         />
-        <Txt variant="caption" tone="secondary" style={styles.footnote}>
-          Weights are stored in kg, so switching units later never changes your history.
-        </Txt>
+        <View style={styles.footnote}>
+          <Icon name="info" size={14} color={colors.textSecondary} />
+          <Txt variant="caption" tone="secondary" style={styles.footnoteText}>
+            Weights are stored in kg, so switching units later never changes your history.
+          </Txt>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -465,6 +474,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   bigInput: {
     flex: 1,
     fontSize: 52,
@@ -521,6 +535,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
   },
   footnote: {
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+  },
+  footnoteText: {
+    flexShrink: 1,
   },
 });
