@@ -70,6 +70,34 @@ function HeaderButton({ label, onPress, disabled, emphasis, role }: HeaderButton
   );
 }
 
+type StepButtonProps = {
+  label: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+};
+
+/** Round − / + button flanking a numeric input. */
+function StepButton({ label, accessibilityLabel, onPress }: StepButtonProps) {
+  const colors = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.stepButton,
+        { backgroundColor: colors.surfaceSunken, borderColor: colors.border },
+        pressed && styles.pressed,
+      ]}>
+      <Txt variant="title" style={styles.stepLabel}>
+        {label}
+      </Txt>
+    </Pressable>
+  );
+}
+
 export default function LogPrScreen() {
   const { exercise: exerciseId } = useLocalSearchParams<{ exercise: string }>();
   const colors = useTheme();
@@ -81,7 +109,7 @@ export default function LogPrScreen() {
   if (!exercise) {
     return (
       <View style={[styles.root, styles.center, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title: 'Log a set' }} />
+        <Stack.Screen options={{ title: 'Log a set', headerTitleAlign: 'center' }} />
         <Txt variant="heading">Pick an exercise first</Txt>
         <Button label="Go back" onPress={() => router.back()} />
       </View>
@@ -129,6 +157,22 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
       weightKg > existing.weightKg ||
       (weightKg === existing.weightKg && reps > existing.reps));
 
+  const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
+  const weightStep = unit === 'kg' ? 2.5 : 5;
+
+  const nudgeWeight = (delta: number) => {
+    const current = Number.parseFloat(weightInput);
+    const next = Math.max(0, (Number.isFinite(current) ? current : 0) + delta);
+    setWeightInput(String(roundWeight(next)));
+    Haptics.selectionAsync().catch(() => {});
+  };
+
+  const nudgeReps = (delta: number) => {
+    const next = Math.min(999, Math.max(0, (Number.isFinite(reps) ? reps : 0) + delta));
+    setRepsInput(String(next));
+    Haptics.selectionAsync().catch(() => {});
+  };
+
   const save = () => {
     if (!canSave) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
@@ -151,6 +195,7 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
       <Stack.Screen
         options={{
           title: 'Log a set',
+          headerTitleAlign: 'center',
           headerLeft: () => (
             <HeaderButton label="Cancel" onPress={() => router.back()} role="cancel" />
           ),
@@ -205,34 +250,53 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
         ) : null}
 
         <Card>
-          <Txt variant="label" tone="secondary" eyebrow>
-            Weight
-          </Txt>
-          <View style={styles.inputRow}>
-            <TextInput
-              value={weightInput}
-              onChangeText={setWeightInput}
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
-              returnKeyType="done"
-              selectTextOnFocus
-              style={[
-                styles.weightInput,
-                {
-                  color: weightValid ? colors.text : weightInput ? colors.danger : colors.text,
-                  backgroundColor: colors.surfaceSunken,
-                  borderColor: weightInput && !weightValid ? colors.danger : colors.border,
-                },
-              ]}
-              accessibilityLabel="Weight"
-            />
+          <View style={styles.cardHeader}>
+            <Txt variant="subheading" tone="secondary">
+              Weight
+            </Txt>
             <UnitSelector
               value={unit}
               onChange={setUnit}
               style={styles.unitSelector}
               testID="log-pr-weight-unit"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <StepButton
+              label="−"
+              accessibilityLabel={`Decrease weight by ${weightStep} ${unit}`}
+              onPress={() => nudgeWeight(-weightStep)}
+            />
+            <TextInput
+              value={weightInput}
+              onChangeText={setWeightInput}
+              onFocus={() => setFocused('weight')}
+              onBlur={() => setFocused(null)}
+              placeholder="0"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="decimal-pad"
+              inputMode="decimal"
+              returnKeyType="done"
+              selectTextOnFocus
+              style={[
+                styles.bigInput,
+                {
+                  color: weightValid ? colors.text : weightInput ? colors.danger : colors.text,
+                  backgroundColor: colors.surfaceSunken,
+                  borderColor:
+                    weightInput && !weightValid
+                      ? colors.danger
+                      : focused === 'weight'
+                        ? accent
+                        : colors.border,
+                },
+              ]}
+              accessibilityLabel={`Weight in ${unit}`}
+            />
+            <StepButton
+              label="+"
+              accessibilityLabel={`Increase weight by ${weightStep} ${unit}`}
+              onPress={() => nudgeWeight(weightStep)}
             />
           </View>
           {weightInput && !weightValid ? (
@@ -243,28 +307,47 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
         </Card>
 
         <Card>
-          <Txt variant="label" tone="secondary" eyebrow>
+          <Txt variant="subheading" tone="secondary">
             Reps
           </Txt>
-          <TextInput
-            value={repsInput}
-            onChangeText={(text) => setRepsInput(text.replace(/[^0-9]/g, ''))}
-            placeholder="0"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            returnKeyType="done"
-            selectTextOnFocus
-            style={[
-              styles.repsInput,
-              {
-                color: repsValid ? colors.text : repsInput ? colors.danger : colors.text,
-                backgroundColor: colors.surfaceSunken,
-                borderColor: repsInput && !repsValid ? colors.danger : colors.border,
-              },
-            ]}
-            accessibilityLabel="Reps"
-          />
+          <View style={styles.inputRow}>
+            <StepButton
+              label="−"
+              accessibilityLabel="Decrease reps"
+              onPress={() => nudgeReps(-1)}
+            />
+            <TextInput
+              value={repsInput}
+              onChangeText={(text) => setRepsInput(text.replace(/[^0-9]/g, ''))}
+              onFocus={() => setFocused('reps')}
+              onBlur={() => setFocused(null)}
+              placeholder="0"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="number-pad"
+              inputMode="numeric"
+              returnKeyType="done"
+              selectTextOnFocus
+              style={[
+                styles.bigInput,
+                {
+                  color: repsValid ? colors.text : repsInput ? colors.danger : colors.text,
+                  backgroundColor: colors.surfaceSunken,
+                  borderColor:
+                    repsInput && !repsValid
+                      ? colors.danger
+                      : focused === 'reps'
+                        ? accent
+                        : colors.border,
+                },
+              ]}
+              accessibilityLabel="Reps"
+            />
+            <StepButton
+              label="+"
+              accessibilityLabel="Increase reps"
+              onPress={() => nudgeReps(1)}
+            />
+          </View>
           <View style={styles.presets}>
             {REP_PRESETS.map((preset) => {
               const active = reps === preset;
@@ -281,7 +364,7 @@ function SetEntryForm({ exercise, existing, unit }: SetEntryFormProps) {
                       borderColor: active ? colors.text : colors.border,
                     },
                   ]}>
-                  <Txt variant="label" style={{ color: active ? colors.onAccent : colors.textSecondary }}>
+                  <Txt variant="subheading" style={{ color: active ? colors.onAccent : colors.textSecondary }}>
                     {preset}
                   </Txt>
                 </Pressable>
@@ -326,6 +409,8 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     minWidth: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   disabled: {
     opacity: 0.4,
@@ -375,28 +460,34 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     marginTop: Spacing.three,
   },
-  weightInput: {
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bigInput: {
     flex: 1,
-    fontSize: 34,
-    fontWeight: '700',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
+    fontSize: 52,
+    fontWeight: '800',
+    textAlign: 'center',
+    paddingVertical: Spacing.four,
     borderRadius: Radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
     letterSpacing: -1,
+  },
+  stepButton: {
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  stepLabel: {
+    lineHeight: 32,
   },
   unitSelector: {
-    alignSelf: 'center',
-  },
-  repsInput: {
-    fontSize: 34,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingVertical: Spacing.three,
-    marginTop: Spacing.three,
-    borderRadius: Radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    letterSpacing: -1,
+    width: 120,
   },
   presets: {
     flexDirection: 'row',
