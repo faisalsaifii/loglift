@@ -4,34 +4,22 @@ import { site } from '../data/content';
 const links = [
   { href: '#how', label: 'How it works' },
   { href: '#features', label: 'Features' },
-];
+] as const;
 ---
 
-<header
-  data-header
-  class="fixed inset-x-0 top-0 z-50 transition-all duration-300 data-[scrolled]:border-b data-[scrolled]:border-line data-[scrolled]:bg-bg/80 data-[scrolled]:backdrop-blur-xl"
->
-  <!-- Reading progress hairline -->
+<header data-header class="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5">
   <div
-    data-progress
-    aria-hidden="true"
-    class="h-px w-full origin-left scale-x-0 bg-fg transition-transform duration-150 ease-out"
+    class="mx-auto flex h-14 max-w-5xl items-center gap-4 rounded-full border border-line-strong bg-bg/70 pr-2 pl-5 backdrop-blur-xl"
   >
-  </div>
-
-  <div class="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 sm:px-8">
     <a href="#top" class="flex items-center gap-2.5">
-      <img src="/favicon.png" alt="" class="h-7 w-7" width="28" height="28" />
-      <span class="text-[0.95rem] font-semibold tracking-[-0.02em]">{site.name}</span>
+      <img src="/favicon.png" alt="" class="h-6 w-6 rounded-md" width="24" height="24" />
+      <span class="poster text-[1.15rem] leading-none">{site.name}</span>
     </a>
 
-    <nav class="ml-auto hidden items-center gap-7 md:flex">
+    <nav class="mono ml-auto hidden items-center gap-6 text-[0.72rem] tracking-[0.08em] uppercase md:flex">
       {
         links.map((link) => (
-          <a
-            href={link.href}
-            class="text-[0.8125rem] font-medium text-muted transition-colors hover:text-fg"
-          >
+          <a href={link.href} class="text-muted transition-colors hover:text-accent">
             {link.label}
           </a>
         ))
@@ -40,21 +28,25 @@ const links = [
         href={site.repoUrl}
         target="_blank"
         rel="noopener"
-        class="text-[0.8125rem] font-medium text-muted transition-colors hover:text-fg"
+        class="text-muted transition-colors hover:text-accent"
       >
-        GitHub
+        GitHub ↗
       </a>
     </nav>
 
-    <div class="ml-auto flex items-center gap-2 md:ml-0">
-      <a
-        href={site.downloadUrl}
-        target="_blank"
-        rel="noopener"
-        class="hidden items-center gap-2 rounded-full bg-fg px-4 py-2 text-[0.8125rem] font-semibold text-on-accent transition-opacity hover:opacity-85 sm:inline-flex"
-      >
-        Get the APK
-      </a>
-    </div>
+    <a
+      href={site.downloadUrl}
+      class="mono ml-auto rounded-full bg-accent px-4 py-2.5 text-[0.72rem] font-semibold tracking-[0.08em] text-on-accent uppercase transition-transform hover:scale-[1.04] md:ml-0"
+    >
+      Get the APK
+    </a>
+  </div>
+
+  <!-- Reading progress hairline, tucked under the pill. -->
+  <div
+    data-progress
+    aria-hidden="true"
+    class="mx-auto mt-2 h-px max-w-5xl origin-left scale-x-0 bg-accent transition-transform duration-150 ease-out"
+  >
   </div>
 </header>

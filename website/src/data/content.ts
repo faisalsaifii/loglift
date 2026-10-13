@@ -11,14 +11,14 @@ export const site = {
   name: 'Log Lift',
   tagline: 'Strength training reference and personal-record logger',
   /** Bump both of these together on every release — see the README. */
-  version: '1.0.0',
+  version: '1.5.0',
   /**
    * The app is not on Google Play yet. Until it is, releases are published as an
    * APK on GitHub and linked straight from here, so the download is the primary
    * call to action on the page rather than a store badge pointing at a 404.
    */
   downloadUrl:
-    'https://github.com/faisalsaifii/loglift/releases/download/v1.0.0/loglift.apk',
+    'https://github.com/faisalsaifii/loglift/releases/download/v1.5.0/loglift_v1.5.0.apk',
   repoUrl: 'https://github.com/faisalsaifii/loglift',
   datasetUrl: 'https://github.com/JahelCuadrado/ExerciseGymGifsDB',
   /** Shown in the footer and used as the structured-data author. */
@@ -81,86 +81,46 @@ export const features: readonly {
   },
 ] as const;
 
-/**
- * Real device captures, one per step of the loop, in `public/screens/`.
- *
- * These are full-screen Android screenshots — status bar and gesture pill
- * included — rather than crops of the app content, so `Phone.astro` can frame
- * them without having to re-draw either. They are keyed by a `ScreenName` and
- * typed against it, so a renamed or missing file is a build error rather than a
- * broken image on the page.
- *
- * The intrinsic size is declared once here rather than on each `<img>`: all five
- * captures come off the same device, so they are all 1206×2622.
- */
-export const SCREEN_WIDTH = 1206;
-export const SCREEN_HEIGHT = 2622;
-
-export const screens = {
-  muscles: {
-    file: 'muscles-page.jpeg',
-    alt: 'The muscle screen, listing the seven body parts the catalogue is grouped into.',
-  },
-  exerciseList: {
-    file: 'exercise-list-page.jpeg',
-    alt: 'The exercise list for one body part, with every movement in that group.',
-  },
-  exerciseDetail: {
-    file: 'exercise-detail-page.jpeg',
-    alt: 'An exercise detail screen, with the looping form demonstration and the written cues beneath it.',
-  },
-  logSet: {
-    file: 'log-a-set-page.jpeg',
-    alt: 'The log-a-set sheet, with weight and reps entered and a banner confirming the set beats your current best.',
-  },
-  progress: {
-    file: 'progress-page.jpeg',
-    alt: 'The progress screen, showing your heaviest set, estimated one-rep max and total volume.',
-  },
-} as const satisfies Record<string, { file: string; alt: string }>;
-
-export type ScreenName = keyof typeof screens;
+/** The big-number band under the hero. `135` is `CURATED_CUE_COUNT` in the app. */
+export const stats = [
+  { value: total, label: 'movements, bundled' },
+  { value: 135, label: 'hand-written cue sets' },
+  { value: bodyParts.length, label: 'body parts' },
+  { value: 0, label: 'accounts or trackers' },
+] as const;
 
 /**
- * One card per step of the loop, each paired with the screen that step happens on.
- *
- * This is where "how it works" and "how it looks" are the same content: the copy
- * describes a step, and the phone above it is a capture off the shipped build
- * rather than a mockup. `screen` is typed against `ScreenName`, so a card pointing
- * at a screenshot that was renamed or never captured fails the build.
+ * One card per step of the loop.
  *
  * Four items, not five, because the grid is one row of four — a fifth would wrap
- * into a lopsided second row. `exerciseList` is the capture that got folded in
- * here: its point (already sorted, already filtered, no spinner) is now the tail
- * of step one rather than a screen of its own.
+ * into a lopsided second row.
  */
 const loopItems = [
   {
-    screen: 'muscles',
     title: 'Pick a movement',
     body: `Seven body parts, ${total.toLocaleString('en-US')} movements, searchable by name, equipment or muscle. All in the binary, so no signal needed.`,
   },
   {
-    screen: 'exerciseDetail',
     title: 'Check the form',
     body: 'Every movement loops its own demo, and 135 of them carry hand-written cues for the lift you are about to load.',
   },
   {
-    screen: 'logSet',
     title: 'Log the set',
     body: 'Weight and reps in four seconds. A banner flags a new best before you save it.',
   },
   {
-    screen: 'progress',
     title: 'Beat the record',
     body: 'Heaviest set, estimated 1RM, total volume, full history — all computed on device.',
   },
-] as const satisfies readonly { screen: ScreenName; title: string; body: string }[];
+] as const satisfies readonly {
+  title: string;
+  body: string;
+}[];
 
 export const loop = {
   eyebrow: 'How it works',
   title: 'The loop, start to finish',
-  lede: `${loopItems.length} steps, each with the screen it happens on. Captures off the shipped build, not mockups.`,
+  lede: `${loopItems.length} steps from picking a movement to beating your record.`,
   items: loopItems,
 } as const;
 
@@ -171,7 +131,8 @@ export const closing = {
    * Sideloading is the one thing a store install would have handled for us, so it
    * gets said out loud rather than left as a surprise on the settings screen.
    */
-  install: 'Android asks you to allow installs from your browser the first time.',
+  install:
+    'Android asks you to allow installs from your browser the first time.',
 } as const;
 
 /* ══ Search and social ═════════════════════════════════════════════════════════ */
@@ -215,7 +176,7 @@ export const seo = {
      * Platforms surface this to screen readers and as the fallback when the image
      * itself fails to load, so it has to stand on its own.
      */
-    alt: `The Log Lift app icon and name on a black background, with the tagline “${site.tagline}” and the notes “${hero.note}”.`,
+    alt: `The Log Lift app icon and name above the headline “Know the movement. Log the set. Beat the record.” in poster type on a dark purple background, with “${total.toLocaleString('en-US')} movements” and “Free · No account · No tracking” along the bottom.`,
   },
 } as const;
 
@@ -237,7 +198,6 @@ export const seo = {
  * app has no Play listing to rate and no reviews to carry.
  */
 export function structuredData(origin: URL) {
-  const abs = (path: string) => new URL(path, origin).href;
   const id = origin.href;
 
   return [
@@ -264,7 +224,6 @@ export function structuredData(origin: URL) {
       license: `https://opensource.org/licenses/${site.license}`,
       author: { '@id': `${id}#author` },
       featureList: features.map((feature) => feature.title),
-      screenshot: Object.values(screens).map((screen) => abs(`/screens/${screen.file}`)),
       offers: {
         '@type': 'Offer',
         price: '0',

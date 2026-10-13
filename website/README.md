@@ -26,9 +26,9 @@ together — the version is printed on the hero badge and the URL has the tag ba
 into it:
 
 ```ts
-version: '1.0.0',
+version: '1.5.0',
 downloadUrl:
-  'https://github.com/faisalsaifii/loglift/releases/download/v1.0.0/loglift.apk',
+  'https://github.com/faisalsaifii/loglift/releases/download/v1.5.0/loglift_v1.5.0.apk',
 ```
 
 Because the download is a sideload rather than a store install, Android's "allow
@@ -59,12 +59,12 @@ inside the JSON-LD. Change it in one place.
 
 ### What is generated
 
-| File                | Source                                                    |
-| ------------------- | --------------------------------------------------------- |
-| `robots.txt`        | `src/pages/robots.txt.ts` — prerendered                   |
-| `sitemap-index.xml` | `@astrojs/sitemap` in `astro.config.mjs`                  |
-| `sitemap-0.xml`     | same                                                       |
-| `og.png`            | `pnpm og` → `scripts/generate-og.mjs`                     |
+| File                | Source                                   |
+| ------------------- | ---------------------------------------- |
+| `robots.txt`        | `src/pages/robots.txt.ts` — prerendered  |
+| `sitemap-index.xml` | `@astrojs/sitemap` in `astro.config.mjs` |
+| `sitemap-0.xml`     | same                                     |
+| `og.png`            | `pnpm og` → `scripts/generate-og.mjs`    |
 
 `robots.txt` is an Astro endpoint rather than a file in `public/` so that it reads
 `site` from the config. A hand-written file would hard-code the origin, and a
@@ -87,19 +87,14 @@ The script reads the same module the page renders from, so the movement count in
 the card cannot drift from the movement count on the page — but that only holds if
 you re-run it.
 
-The card is set in the site's own `--font-sans`, read out of `global.css` at run
-time rather than restated in the script, so it cannot drift from the page either.
-The page loads no webfont, so that stack resolves per platform — the card is set in
-whatever face the machine that ran `pnpm og` provides. The face is deliberately not
-embedded: Segoe UI and SF Pro are licensed for local use only. Because the card is
-committed, only one machine's resolution ever ships; regenerate deliberately and
-the diff will show it.
+The card is an HTML page set in the same faces and palette as the landing page (the
+fonts load from Google Fonts, the colours are read out of `:root` in `global.css`),
+screenshotted by headless Chrome or Edge. It needs a Chromium browser and a network
+connection; set `CHROME_PATH` if yours is in a non-standard location.
 
-The script measures the rasterised card and fails on the two failures a zero exit
-code would hide — a stack fontconfig cannot resolve, which renders every string as
-nothing, and a face whose metrics push a line past the right margin, where the
-1200px frame silently crops it.
-
+The script checks the result's exact size and that the headline and footer bands
+actually contain ink, which catches a font that failed to load — the PNG would
+otherwise still be valid.
 `sharp` and `esbuild` are devDependencies for this script alone; neither ships to
 the browser or runs during `astro build`.
 
@@ -107,8 +102,7 @@ the browser or runs during `astro build`.
 
 `structuredData()` in `src/data/content.ts` returns a `@graph` that `Base.astro`
 wraps in a JSON-LD `<script>`. Three nodes: `WebSite`, `MobileApplication`,
-`Person`. The feature list and screenshot URLs are read from `features` and
-`screens`, so the markup cannot claim something the app does not do.
+`Person`. The feature list is read from `features`, so the markup cannot claim something the app does not do.
 
 There is deliberately no `aggregateRating` or `review`. Both are valid on
 `SoftwareApplication`, and inventing either would be fabricated review markup —
@@ -152,55 +146,20 @@ it:
 
 If those numbers change in the app, change them here too.
 
-## How the phone mockups work
+## Screenshots
 
-The phones on the page frame **real screenshots**, not HTML rebuilds. The captures live
-in `public/screens/` and are full-device Android shots (status bar and gesture pill
-included), so `Phone.astro` contributes only a bezel and a contact shadow — and since
-the pixels are fixed, the phones need no theme-specific treatment.
+The page deliberately has no app screenshots or phone mockups: they went stale every
+time the UI changed and were too much to maintain. The "How it works" section is
+text-only (`loop` in `src/data/content.ts`).
 
-Screens are registered once in the `screens` map in `src/data/content.ts`, keyed by a
-`ScreenName`, and `Phone.astro` types its `screen` prop against that map. A renamed or
-missing file is therefore a build error rather than a broken image on the page. Alt text
-lives in the same entry, and the walkthrough copy for each screen is the `loop` object
-just below it.
-
-```astro
-<Phone screen="progress" size="sm" />
-```
-
-| Prop    | Effect                                                              |
-| ------- | ------------------------------------------------------------------- |
-| `screen`| Which entry in the `screens` map to frame                            |
-| `size`  | `lg` (19rem) for the hero shot, `sm` (15rem) for a walkthrough row   |
-| `delay` | Staggers the drift animation when several devices share a section   |
-| `eager` | Skips lazy-loading for the likely LCP element (the hero phone)       |
-
-To add a screen: drop the capture into `public/screens/`, add an entry to `screens`, and
-if it should appear in the walkthrough, append it to `loop.items`.
-
-The form demonstrations the app shows come from
+The form demonstrations in the app come from
 [ExerciseGymGifsDB](https://github.com/JahelCuadrado/ExerciseGymGifsDB) pinned to
-`v1.1.0` — the same source and the same pin the app itself uses. The page used to vendor
-a copy; it does not any more, since every phone now frames a screenshot. The attribution
-stays in the footer because it still covers the GIFs visible inside the exercise-detail
-capture.
+`v1.1.0`, the same source and pin the app uses. The attribution stays in the footer.
 
 ## Styling notes
 
-The site is **dark-only**. There is no theme toggle, no `.dark` class on `<html>` and
-no `prefers-color-scheme` branch — the palette lives in `:root` in
-`src/styles/global.css` and `color-scheme` is set to `dark`. Do not reintroduce a
-light palette; add a new token there instead.
+The site is **dark-only**, set in a "training ledger" language: warm near-black, bone ink and one electric-lime accent (`--accent`) that only marks the primary action or a number worth reading. Three type voices — Bricolage Grotesque (poster headings, `.poster`), Instrument Serif italic (asides, `.aside`) and JetBrains Mono (data, `.mono`) — plus Anton for hollow lettering (`.outline-type`; the variable grotesque's overlapping contours show through a text-stroke). Fonts load from Google Fonts in `Base.astro`.
 
-Tailwind v4, configured through `@theme inline` in `src/styles/global.css`. The
-`inline` option is load-bearing — without it, `bg-surface` freezes the `:root` value
-and every `.band-sunken` section further down the page paints the page colour instead
-of the inset one.
+Palette tokens live in `:root` in `src/styles/global.css`; there is no light palette. Tailwind v4 is configured through `@theme inline` — the `inline` option is load-bearing, otherwise `bg-surface` freezes the `:root` value and `.band-sunken` sections paint the page colour.
 
-`.band-sunken` only redefines `background-color`; it leaves the inherited `color`
-alone so cards nested inside it stay raised against it.
-
-`data-reveal` animates `transform` on the element it sits on, so it must never share an
-element with `.tilt`, which also owns `transform`. Cards wrap one inside the other for
-that reason.
+Motion lives in `src/scripts/motion.ts` (scroll reveal, pointer spotlight on `.tile`, `data-count` count-up, header state) and respects `prefers-reduced-motion`. `data-reveal` animates `transform`, so never put it on an element that also owns a transform.

@@ -1,57 +1,52 @@
 ---
 /**
- * The primary download call to action.
- *
- * This used to be a "Get it on Google Play" badge, complete with the Play
- * triangle. Two reasons it no longer is: the app is distributed as a GitHub
- * release APK rather than through Play, and the Play triangle is Google's
- * trademark — pointing it at a sideloaded binary would be both inaccurate and a
- * brand misuse. The glyph is a neutral download arrow instead.
+ * The primary download call to action: a big violet pill with a neutral download
+ * arrow. (Not a Play badge — the app ships as a GitHub release APK, and the Play
+ * triangle is Google's trademark.)
  */
 import { site } from '../data/content';
 
 interface Props {
   href?: string;
+  /** `accent` on dark surfaces, `ink` on the violet closing panel. */
+  tone?: 'accent' | 'ink';
   class?: string;
 }
 
-const { href = site.downloadUrl, class: className = '' } = Astro.props;
+const { href = site.downloadUrl, tone = 'accent', class: className = '' } = Astro.props;
 ---
 
 <a
   href={href}
-  target="_blank"
-  rel="noopener"
   class:list={[
-    // `sheen` gives the button its highlight sweep. `isolation: isolate` keeps
-    // that pseudo-element inside the button's own stacking context, so it can
-    // never slide over the surrounding card.
-    //
-    // Fills follow the page tokens rather than the section it sits in: the badge
-    // lives on `bg-surface` in both places, so an inverted (white) treatment would
-    // be a white button on a white card.
-    'sheen inline-flex items-center gap-3.5 rounded-xl bg-fg px-5 py-3 text-on-accent transition-opacity duration-300 hover:opacity-85 active:scale-[0.98]',
+    'sheen group inline-flex items-center gap-4 rounded-full py-3 pr-3 pl-7 transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]',
+    tone === 'accent' ? 'bg-accent text-on-accent' : 'bg-bg text-fg',
     className,
   ]}
 >
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    class="relative z-10 h-7 w-7 shrink-0"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path d="M12 3.5v10"></path>
-    <path d="m7.75 10.25 4.25 4.25 4.25-4.25"></path>
-    <path d="M4.75 16v2.25a2 2 0 0 0 2 2h10.5a2 2 0 0 0 2-2V16"></path>
-  </svg>
   <span class="relative z-10 flex flex-col leading-none">
-    <span class="text-[0.5625rem] font-semibold tracking-[0.16em] uppercase opacity-70"
-      >Download for</span
+    <span class="mono text-[0.6rem] font-medium tracking-[0.18em] uppercase opacity-70">Download for</span>
+    <span class="poster mt-1.5 text-[1.6rem]">Android</span>
+  </span>
+  <span
+    class:list={[
+      'relative z-10 flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-300 group-hover:translate-y-0.5',
+      tone === 'accent' ? 'bg-bg text-accent' : 'bg-accent text-on-accent',
+    ]}
+  >
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      class="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
     >
-    <span class="mt-1 text-[1.0625rem] font-semibold tracking-[-0.01em]">Android</span>
+      <path d="M12 4v11"></path>
+      <path d="m7 11 5 5 5-5"></path>
+      <path d="M5 20h14"></path>
+    </svg>
   </span>
 </a>
