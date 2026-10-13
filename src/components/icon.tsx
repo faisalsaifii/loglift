@@ -16,6 +16,8 @@ export const ICONS = {
   muscles: { sf: 'dumbbell.fill', md: 'weight-lifter' },
   progress: { sf: 'chart.line.uptrend.xyaxis', md: 'trending-up' },
   settings: { sf: 'gearshape', md: 'cog' },
+  diet: { sf: 'fork.knife', md: 'food-apple' },
+  chevronLeft: { sf: 'chevron.left', md: 'chevron-left' },
 
   chest: { sf: 'figure.strengthtraining.traditional', md: 'weight-lifter' },
   back: { sf: 'figure.arms.open', md: 'human-handsup' },

@@ -41,14 +41,14 @@ type TransferStatus = { tone: "success" | "danger"; message: string } | undefine
 
 export default function SettingsScreen() {
   const colors = useTheme();
-  const { unit, setUnit, clearAll, stats, isReady, getSnapshot, replaceAll, bodyWeights } =
+  const { unit, setUnit, clearAll, stats, isReady, getSnapshot, replaceAll, bodyWeights, foodLog } =
     useLibrary();
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<TransferStatus>(undefined);
 
   const confirmClear = () => {
     const message =
-      "This removes every exercise from your library, all logged sets and body weight readings. It cannot be undone.";
+      "This removes every exercise from your library, all logged sets, body weight readings and food entries. It cannot be undone.";
     if (Platform.OS === "web") {
       clearAll();
       return;
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
           )} logged · ${pluralize(
             result.snapshot.bodyWeights.length,
             "body weight reading",
-          )}`,
+          )} · ${pluralize(result.snapshot.foodLog.length, "food entry", "food entries")}`,
         });
       } else if (result.status === "failed") {
         setStatus({ tone: "danger", message: IMPORT_FAILED });
@@ -200,7 +200,8 @@ export default function SettingsScreen() {
         <Txt variant="body" tone="secondary">
           {pluralize(stats.totalExercises, "exercise")} tracked ·{" "}
           {pluralize(stats.totalPrs, "set")} logged ·{" "}
-          {pluralize(bodyWeights.length, "body weight reading")}
+          {pluralize(bodyWeights.length, "body weight reading")} ·{" "}
+          {pluralize(foodLog.length, "food entry", "food entries")}
         </Txt>
         <View style={styles.dangerRow}>
           <Button
