@@ -58,7 +58,7 @@ export function buildBackupFile(snapshot: LibrarySnapshot, now: Date = new Date(
     format: FORMAT,
     version: FORMAT_VERSION,
     exportedAt: now.toISOString(),
-    data: { unit: snapshot.unit, logs: snapshot.logs },
+    data: { unit: snapshot.unit, logs: snapshot.logs, bodyWeights: snapshot.bodyWeights },
   };
 }
 
@@ -101,7 +101,8 @@ function readBackupFile(raw: string): LibrarySnapshot | null {
 
   const looksLikeState =
     typeof candidate.unit === 'string' ||
-    (!!candidate.logs && typeof candidate.logs === 'object');
+    (!!candidate.logs && typeof candidate.logs === 'object') ||
+    Array.isArray(candidate.bodyWeights);
 
   return looksLikeState ? sanitise(payload) : null;
 }
@@ -112,7 +113,7 @@ function readBackupFile(raw: string): LibrarySnapshot | null {
  * means nothing to the Web Share API.
  */
 export async function exportLibrary(snapshot: LibrarySnapshot): Promise<ExportResult> {
-  if (Object.keys(snapshot.logs).length === 0) {
+  if (Object.keys(snapshot.logs).length === 0 && snapshot.bodyWeights.length === 0) {
     return { status: 'nothingToExport' };
   }
 

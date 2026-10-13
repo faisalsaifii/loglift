@@ -1,6 +1,9 @@
 import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { BodyWeightTab } from '@/components/body-weight-tab';
+import { Segmented } from '@/components/controls';
 import { Screen } from '@/components/screen';
 import { Txt } from '@/components/txt';
 import { Card, Chip, EmptyState } from '@/components/ui';
@@ -10,7 +13,28 @@ import { useTheme } from '@/hooks/use-theme';
 import { useLibrary, type PrEntry } from '@/store/library';
 import { formatRelativeDate, formatWeight, fromKg, pluralize, type WeightUnit } from '@/utils/weight';
 
+type ProgressTab = 'lifts' | 'body';
+
+const PROGRESS_TABS = [
+  { value: 'lifts', label: 'Lifts' },
+  { value: 'body', label: 'Body Weight' },
+] as const;
+
 export default function ProgressScreen() {
+  const [tab, setTab] = useState<ProgressTab>('lifts');
+
+  return (
+    <Screen>
+      <Stack.Title>Progress</Stack.Title>
+
+      <Segmented options={PROGRESS_TABS} value={tab} onChange={setTab} />
+
+      {tab === 'lifts' ? <LiftsTab /> : <BodyWeightTab />}
+    </Screen>
+  );
+}
+
+function LiftsTab() {
   const router = useRouter();
   const { stats, recentPrs, unit, isReady } = useLibrary();
 
@@ -20,9 +44,7 @@ export default function ProgressScreen() {
   );
 
   return (
-    <Screen>
-      <Stack.Title>Progress</Stack.Title>
-
+    <>
       <Txt variant="body" tone="secondary">
         Every set you log, newest first.
       </Txt>
@@ -51,7 +73,7 @@ export default function ProgressScreen() {
           ) : null}
         </>
       ) : null}
-    </Screen>
+    </>
   );
 }
 
