@@ -22,7 +22,7 @@ export default function MusclesScreen() {
 
   return (
     <>
-      <Stack.Title>Muscles</Stack.Title>
+      <Stack.Title>Lifts</Stack.Title>
 
       <Screen>
         <Txt variant="caption" tone="secondary">

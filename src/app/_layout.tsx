@@ -26,15 +26,16 @@ function ThemedStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="muscle/[muscle]"
-          options={{ title: '', headerBackTitle: 'Muscles' }}
+          options={{ title: '', headerBackTitle: 'Lifts' }}
         />
         <Stack.Screen
           name="collection/[collection]"
-          options={{ title: '', headerBackTitle: 'Muscles' }}
+          options={{ title: '', headerBackTitle: 'Lifts' }}
         />
         <Stack.Screen name="exercise/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
 
         <Stack.Screen name="log-pr" options={{ presentation: 'modal', title: 'Log a set' }} />
+        <Stack.Screen name="add-food" options={{ title: 'Add food', headerBackTitle: 'Diet' }} />
       </Stack>
     </>
   );

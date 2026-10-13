@@ -11,6 +11,16 @@ import {
 } from 'react';
 
 import { getExercise, type MuscleGroupId } from '@/data/exercises';
+import type { Food, Nutrients } from '@/data/foods';
+import {
+  DEFAULT_GOALS,
+  sanitiseCustomFoods,
+  sanitiseFoodLog,
+  sanitiseGoals,
+  type DietGoals,
+  type FoodEntry,
+  type MealType,
+} from '@/utils/diet';
 import type { WeightUnit } from '@/utils/weight';
 import { toKg } from '@/utils/weight';
 
@@ -51,11 +61,23 @@ export type LibrarySnapshot = {
   logs: Record<string, ExerciseLog>;
   /** Body weight readings, oldest first. */
   bodyWeights: BodyWeightEntry[];
+  /** Every food eaten, in the order it was logged. */
+  foodLog: FoodEntry[];
+  /** Foods the user defined themselves. */
+  customFoods: Food[];
+  goals: DietGoals;
 };
 
 type PersistedState = LibrarySnapshot;
 
-const EMPTY_STATE: LibrarySnapshot = { unit: 'kg', logs: {}, bodyWeights: [] };
+const EMPTY_STATE: LibrarySnapshot = {
+  unit: 'kg',
+  logs: {},
+  bodyWeights: [],
+  foodLog: [],
+  customFoods: [],
+  goals: DEFAULT_GOALS,
+};
 
 type BestPr = {
   weightKg: number;
@@ -82,6 +104,16 @@ type LibraryContextValue = {
   /** Logs a reading for today, replacing any earlier reading from the same day. */
   addBodyWeight: (weightKg: number) => void;
   removeBodyWeight: (id: string) => void;
+  foodLog: FoodEntry[];
+  customFoods: Food[];
+  goals: DietGoals;
+  setGoals: (goals: DietGoals) => void;
+  /** Logs `grams` of a food; nutrition is scaled and stored as eaten. */
+  addFoodEntry: (food: Food, grams: number, meal: MealType, day: string) => void;
+  removeFoodEntry: (id: string) => void;
+  /** Saves a user-defined food and returns it so it can be logged straight away. */
+  addCustomFood: (food: Omit<Food, 'id' | 'custom' | 'category'>) => Food;
+  removeCustomFood: (id: string) => void;
   /** Heaviest logged set for an exercise, with the reps it was done for. */
   bestPr: (exerciseId: string) => BestPr | undefined;
   /** Per-body-part counts of library exercises and total logged PRs. */
@@ -192,6 +224,9 @@ export function sanitise(value: unknown): LibrarySnapshot {
     unit: candidate.unit === 'lb' ? 'lb' : 'kg',
     logs,
     bodyWeights: sortBodyWeights(bodyWeights),
+    foodLog: sanitiseFoodLog(candidate.foodLog, createId),
+    customFoods: sanitiseCustomFoods(candidate.customFoods, createId),
+    goals: sanitiseGoals(candidate.goals),
   };
 }
 
@@ -350,8 +385,77 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     [mutate]
   );
 
+  const setGoals = useCallback(
+    (goals: DietGoals) => mutate((current) => ({ ...current, goals: sanitiseGoals(goals) })),
+    [mutate]
+  );
+
+  const addFoodEntry = useCallback(
+    (food: Food, grams: number, meal: MealType, day: string) => {
+      if (!(grams > 0)) {
+        return;
+      }
+      const factor = grams / 100;
+      const scaled: Nutrients = {
+        kcal: food.per100g.kcal * factor,
+        protein: food.per100g.protein * factor,
+        carbs: food.per100g.carbs * factor,
+        fat: food.per100g.fat * factor,
+        fiber: food.per100g.fiber * factor,
+      };
+      const entry: FoodEntry = {
+        ...scaled,
+        id: createId(),
+        day,
+        meal,
+        name: food.name,
+        grams,
+        loggedAt: new Date().toISOString(),
+      };
+      mutate((current) => ({ ...current, foodLog: [...current.foodLog, entry] }));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    },
+    [mutate]
+  );
+
+  const removeFoodEntry = useCallback(
+    (id: string) => {
+      mutate((current) => ({
+        ...current,
+        foodLog: current.foodLog.filter((entry) => entry.id !== id),
+      }));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    },
+    [mutate]
+  );
+
+  const addCustomFood = useCallback(
+    (food: Omit<Food, 'id' | 'custom' | 'category'>): Food => {
+      const created: Food = {
+        ...food,
+        id: `custom-${createId()}`,
+        category: 'My foods',
+        custom: true,
+      };
+      mutate((current) => ({ ...current, customFoods: [...current.customFoods, created] }));
+      return created;
+    },
+    [mutate]
+  );
+
+  const removeCustomFood = useCallback(
+    (id: string) => {
+      mutate((current) => ({
+        ...current,
+        customFoods: current.customFoods.filter((food) => food.id !== id),
+      }));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    },
+    [mutate]
+  );
+
   const clearAll = useCallback(() => {
-    mutate(() => ({ unit: 'kg', logs: {}, bodyWeights: [] }));
+    mutate(() => EMPTY_STATE);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   }, [mutate]);
 
@@ -360,6 +464,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       unit: stateRef.current.unit,
       logs: stateRef.current.logs,
       bodyWeights: stateRef.current.bodyWeights,
+      foodLog: stateRef.current.foodLog,
+      customFoods: stateRef.current.customFoods,
+      goals: stateRef.current.goals,
     }),
     []
   );
@@ -421,6 +528,14 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       bodyWeights: state.bodyWeights,
       addBodyWeight,
       removeBodyWeight,
+      foodLog: state.foodLog,
+      customFoods: state.customFoods,
+      goals: state.goals,
+      setGoals,
+      addFoodEntry,
+      removeFoodEntry,
+      addCustomFood,
+      removeCustomFood,
       bestPr: (id) => {
         const best = logs[id]?.prs[0];
         if (!best) {
@@ -447,6 +562,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     removePr,
     addBodyWeight,
     removeBodyWeight,
+    setGoals,
+    addFoodEntry,
+    removeFoodEntry,
+    addCustomFood,
+    removeCustomFood,
     getSnapshot,
     replaceAll,
     clearAll,
